@@ -1,0 +1,126 @@
+from flask import Flask, render_template, request, jsonify
+import webbrowser
+import json
+import requests
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+#####################
+base_url = "http://system.edenmea.com"
+
+header = {
+    "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
+}
+#####################
+
+# Load tokenizer and model
+model_name = "microsoft/DialoGPT-medium"  # Replace with "medium" or "large" for larger models
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer.pad_token = tokenizer.eos_token
+model = AutoModelForCausalLM.from_pretrained(model_name)
+
+
+#---------------------------------------------------#
+# Function for chatbot response
+def generate_response(user_input):
+    # Encode user input with an attention mask
+    inputs = tokenizer(
+        user_input + tokenizer.eos_token, 
+        return_tensors="pt", 
+        padding=True, 
+        truncation=True
+    )
+    
+    # Generate a response
+    outputs = model.generate(
+        inputs["input_ids"], 
+        attention_mask=inputs["attention_mask"],  # Pass attention mask
+        max_length=150, 
+        pad_token_id=tokenizer.eos_token_id, 
+        temperature=0.5, 
+        top_k=10, 
+        top_p=0.8,
+        do_sample=True
+    )
+    
+    # Decode and return the response, stripping the input text
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    # Remove the user input portion from the response
+    return response[len(user_input):].strip()
+
+#####################
+
+app = Flask(__name__)
+
+# Simple chatbot logic
+def chatbot_response(message):
+    responses = {
+        "hi": "Hello! How can I help you today?",
+        "hello": "Hi there! How can I help you?",
+        "how are you": "I'm just a chatbot, but I'm doing great! How about you?",
+        "bye": "Goodbye! Have a nice day!",
+    }
+
+    # Check for predefined responses first
+    normalized_message = message.lower()
+    if normalized_message in responses:
+        return responses[normalized_message]
+
+    # Specific commands
+    if normalized_message == "open wiki":
+        return "iframe:wikipedia"
+
+    if normalized_message == "done":
+        return "iframe:close"  # Indicate that the iframe should be closed
+
+    if normalized_message in ["get users", "can you get me a list of the users"]:
+        doc_type = "User"
+        response = requests.get(f"{base_url}/api/resource/{doc_type}", headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            if not data:
+                return "No users found."
+            # Extract names and format them as a list
+            user_list = [user.get("name", "Unnamed User") for user in data]
+            # Combine into a single string with newline separators
+            formatted_users = "\n".join(f"- {user}" for user in user_list)
+            return f"Here are the users:\n{formatted_users}"
+        else:
+            return "Error retrieving user list."
+
+    if normalized_message in ["get the list of purchase invoices", "purchase invoices", "pi"]:
+        endpoint = "/api/resource/Purchase Invoice"
+        filters = '[["docstatus","=","1"],["posting_date","Timespan","this year"]]'
+        fields = '["title","status","posting_date","grand_total","name"]'
+        url = f"{base_url}{endpoint}?filters={filters}&fields={fields}"
+
+        response = requests.get(url, headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            # Format purchase invoice data
+            if data:
+                formatted_data = "\n".join([
+                    f"- {item['title']} (Status: {item['status']}, Date: {item['posting_date']}, Total: {item['grand_total']}, Name: {item['name']})"
+                    for item in data
+                ])
+                return f"Here are the purchase invoices:\n{formatted_data}"
+            else:
+                return "No purchase invoices found matching the criteria."
+        else:
+            return f"Error retrieving purchase invoices. Status code: {response.status_code}"
+
+    # Fallback to AI model for other messages
+    return generate_response(message)
+
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/get_response", methods=["POST"])
+def get_response():
+    user_message = request.json.get("message")
+    response = chatbot_response(user_message)
+    return jsonify({"response": response})
+
+if __name__ == "__main__":
+    app.run(debug=True)

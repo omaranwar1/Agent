@@ -1,0 +1,78 @@
+from flask import Flask, render_template, request, jsonify
+import webbrowser
+import json
+import requests
+
+#####################
+base_url = "http://system.edenmea.com"
+
+header = {
+    "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
+}
+#####################
+
+
+app = Flask(__name__)
+
+# Simple chatbot logic
+def chatbot_response(message):
+    responses = {
+        "hi": "Hello! How can I help you today?",
+        "hello": "Hi there! How can I help you?",
+        "how are you": "I'm just a chatbot, but I'm doing great! How about you?",
+        "bye": "Goodbye! Have a nice day!",
+    }
+
+    if message.lower() == "open google":
+        webbrowser.open("https://www.google.com")
+        return "Google has been opened in your browser."
+    
+    elif message.lower() in ["get users", "users"]:
+        doc_type = "User"
+        response = requests.get(f"{base_url}/api/resource/{doc_type}", headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            # Extract names and format them as a list
+            user_list = "\n".join([f"- {user['name']}" for user in data if "name" in user])
+            return f"Here are the users:\n{user_list}"
+        else:
+            return "Error retrieving user list."
+        
+
+    elif message.lower() in ["get purchase invoices", "purchase invoices"]:
+        endpoint = "/api/resource/Purchase Invoice"
+        filters = '[["docstatus","=","1"],["posting_date","Timespan","this year"]]' #,["grand_total","=","1"]
+        fields = '["title","status","posting_date","grand_total","name"]'
+        url = f"{base_url}{endpoint}?filters={filters}&fields={fields}"
+        
+        response = requests.get(url, headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            # Format purchase invoice data
+            if data:
+                formatted_data = "\n".join([
+                    f"- {item['title']} (Status: {item['status']}, Date: {item['posting_date']}, Total: {item['grand_total']}, Name: {item['name']})"
+                    for item in data
+                ])
+                return f"Here are the purchase invoices:\n{formatted_data}"
+            else:
+                return "No purchase invoices found matching the criteria."
+        else:
+            return f"Error retrieving purchase invoices. Status code: {response.status_code}"
+    else:
+        return responses.get(message.lower(), "I'm sorry, I didn't understand that. Can you please rephrase?")
+
+
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/get_response", methods=["POST"])
+def get_response():
+    user_message = request.json.get("message")
+    response = chatbot_response(user_message)
+    return jsonify({"response": response})
+
+if __name__ == "__main__":
+    app.run(debug=True)

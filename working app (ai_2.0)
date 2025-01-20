@@ -1,0 +1,112 @@
+from flask import Flask, render_template, request, jsonify
+import requests
+import boto3
+import json
+
+#####################
+# Backend API details for additional data fetching
+base_url = "http://system.edenmea.com"
+header = {
+    "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
+}
+#####################
+
+# Initialize AWS SageMaker runtime client
+sagemaker_runtime = boto3.client(
+    'sagemaker-runtime',
+    region_name='us-east-1',
+    aws_access_key_id='AKIA2UC3BLIX2LGV4WQR',
+    aws_secret_access_key='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'
+)
+
+# SageMaker endpoint name
+endpoint_name = "test-2-agent"
+
+#---------------------------------------------------#
+# Function to call SageMaker model
+def generate_response_aws(user_input):
+    # Align input format with AWS inference input
+    payload = {
+        "inputs": f"<|begin_of_text|><|start_header_id|>user<|end_header_id>\n\n{user_input}<|eot_id|><|start_header_id|>assistant<|end_header_id>\n\n",
+        "parameters": {
+            "max_new_tokens": 256,
+            "top_p": 0.9,
+            "temperature": 0.6,
+            "details": True  # Include detailed output as in AWS
+        }
+    }
+
+    # Invoke SageMaker endpoint
+    response = sagemaker_runtime.invoke_endpoint(
+        EndpointName=endpoint_name,
+        Body=json.dumps(payload),
+        ContentType="application/json"
+    )
+
+    # Parse the raw response
+    result = json.loads(response['Body'].read().decode())
+
+    # Return the generated text
+    if "generated_text" in result:
+        return result["generated_text"].strip()
+    else:
+        return "Sorry, I couldn't process your request."
+
+
+
+#---------------------------------------------------#
+
+app = Flask(__name__)
+
+# Chatbot logic
+def chatbot_response(message):
+    normalized_message = message.lower()
+
+    # Handle API calls for specific data
+    if normalized_message in ["get users", "can you get me a list of the users"]:
+        doc_type = "User"
+        response = requests.get(f"{base_url}/api/resource/{doc_type}", headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            if not data:
+                return "No users found."
+            user_list = [user.get("name", "Unnamed User") for user in data]
+            return f"Here are the users:\n" + "\n".join(f"- {user}" for user in user_list)
+        else:
+            return f"Error retrieving user list. Status code: {response.status_code}"
+
+    if normalized_message in ["get the list of purchase invoices", "purchase invoices", "pi"]:
+        endpoint = "/api/resource/Purchase Invoice"
+        filters = '[["docstatus","=","1"],["posting_date","Timespan","this year"]]'
+        fields = '["title","status","posting_date","grand_total","name"]'
+        url = f"{base_url}{endpoint}?filters={filters}&fields={fields}"
+
+        response = requests.get(url, headers=header)
+        if response.status_code == 200:
+            data = response.json().get("data", [])
+            if data:
+                formatted_data = "\n".join([
+                    f"- {item['title']} (Status: {item['status']}, Date: {item['posting_date']}, Total: {item['grand_total']}, Name: {item['name']})"
+                    for item in data
+                ])
+                return f"Here are the purchase invoices:\n{formatted_data}"
+            else:
+                return "No purchase invoices found matching the criteria."
+        else:
+            return f"Error retrieving purchase invoices. Status code: {response.status_code}"
+
+    # Fallback to SageMaker model for other messages
+    return generate_response_aws(message)
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/get_response", methods=["POST"])
+def get_response():
+    user_message = request.json.get("message")
+    response = chatbot_response(user_message)
+    return jsonify({"response": response})
+
+if __name__ == "__main__":
+    app.run(debug=True)
