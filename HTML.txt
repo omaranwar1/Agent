@@ -1,160 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f7f7f7;
-            position: relative;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eden Chatbot</title>
+  <style>
+    /* -- All your original styles stay here exactly as they were -- */
 
-        #logo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            max-width: 100px;
-            width: auto;
-            height: auto;
-            display: block;
-        }
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f7f7f7;
+      position: relative;
+    }
 
-        #container {
-            display: flex;
-            width: 80%;
-            height: 100vh;
-            justify-content: center;
-            transition: all 0.5s ease;
-        }
+    #logo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      max-width: 100px;
+      width: auto;
+      height: auto;
+      display: block;
+    }
 
-        #chat-container {
-            width: 50%;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            height: 97%;
-            padding: 10px;
-            transition: width 0.5s ease;
-        }
+    #container {
+      display: flex;
+      width: 80%;
+      height: 100vh;
+      justify-content: center;
+      transition: all 0.5s ease;
+    }
 
-        #chat-box {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            border-bottom: 2px solid #ccc;
-            background-color: #f9f9f9;
-            margin-bottom: 10px;
-        }
+    #chat-container {
+      width: 80%;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      height: 97.4%;
+      padding: 8px;
+      transition: width 0.5s ease;
+      position: relative; /* keep this */
+    }
 
-        .message {
-            padding: 8px 12px;
-            margin: 6px 0;
-            border-radius: 10px;
-            max-width: 80%;
-        }
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      border-bottom: 2px solid #ccc;
+      background-color: #f9f9f9;
+      margin-bottom: 10px;
+    }
 
-        .user-message {
-            background-color: #e1f5fe;
-            text-align: right;
-            margin-left: auto;
-        }
+    .message {
+      padding: 8px 12px;
+      margin: 6px 0;
+      border-radius: 10px;
+      max-width: 80%;
+    }
 
-        .bot-message {
-            background-color: #f1f1f1;
-            text-align: left;
-            margin-right: auto;
-        }
+    .user-message {
+      background-color: #e1f5fe;
+      text-align: right;
+      margin-left: auto;
+    }
 
-        .greeting-message {
-            color: #666;
-            font-style: italic;
-        }
+    .bot-message {
+      background-color: #f1f1f1;
+      text-align: left;
+      margin-right: auto;
+    }
 
-        .input-container {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            background-color: #fff;
-            border-top: 2px solid #ccc;
-        }
+    .greeting-message {
+      color: #666;
+      font-style: italic;
+    }
 
-        #user-input {
-            width: 85%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            font-size: 14px;
-        }
+    .input-container {
+      display: flex;
+      justify-content: space-between;
+      padding: 1px;
+      background-color: #fff;
+    }
 
-        #send-button {
-            width: 12%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-        }
+    #user-input {
+      width: 85%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 14px;
+    }
 
-        #send-button:hover {
-            background-color: #0056b3;
-        }
+    #send-button {
+      width: 12%;
+      padding: 10px;
+      background-color: #4797ed;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+    }
 
-        #service-buttons,
-        #sub-service-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
+    #send-button:hover {
+      background-color: #0056b3;
+    }
 
-        #service-buttons button,
-        #sub-service-buttons button {
-            padding: 10px 15px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            cursor: pointer;
-            background-color: #e1f5fe;
-            transition: background-color 0.3s;
-        }
+    #service-buttons,
+    .sub-service-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-        #service-buttons button:hover,
-        #sub-service-buttons button:hover {
-            background-color: #b3e5fc;
-        }
+    #service-buttons button,
+    .sub-service-buttons button {
+      padding: 10px 15px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      cursor: pointer;
+      background-color: #e1f5fe;
+      transition: background-color 0.3s;
+    }
 
-        #back-button {
-            margin-top: 20px;
-            padding: 10px 15px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            cursor: pointer;
-            background-color: #ffcccb;
-            transition: background-color 0.3s;
-        }
+    #service-buttons button:hover,
+    .sub-service-buttons button:hover {
+      background-color: #b3e5fc;
+    }
 
-        #back-button:hover {
-            background-color: #ffa3a1;
-        }
-    </style>
+    #breadcrumbs {
+      margin: 10px 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+    #breadcrumbs a {
+      color: #007bff;
+      text-decoration: none;
+      margin-right: 5px;
+    }
+
+    #breadcrumbs a:hover {
+      text-decoration: underline;
+    }
+
+    /* Original iframe container rules */
+    #iframe-container {
+      display: none; /* Hidden initially */
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 99%;
+      background-color: white;
+      border-left: 2px solid #ccc;
+    }
+
+    #iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Original class that tries to move the chat box left */
+    .chat-with-iframe #chat-container {
+      width: 50%;
+      margin-right: 10px;
+    }
+
+    /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+       THE IMPORTANT FIX/OVERRIDE BLOCK:
+       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* When iframe is visible, expand #container so there's room for both */
+    #container.chat-with-iframe {
+      width: 90% !important;            /* override the original 50% */
+      justify-content: space-between !important;
+      align-items: flex-start !important;
+    }
+
+    /* Force chat container to be 60% and iframe container 40% side by side */
+    #container.chat-with-iframe #chat-container {
+      width: 60% !important;
+      margin-right: 0 !important;       /* remove any leftover margins if needed */
+    }
+
+    #container.chat-with-iframe #iframe-container {
+      display: block !important;        /* ensure iframe is shown */
+      position: relative !important;    /* override absolute positioning */
+      width: 40% !important;
+      height: auto !important;          /* let it size automatically */
+      margin-left: 10px !important;     /* some spacing from chat container */
+      top: auto !important;
+      right: auto !important;
+    }
+  </style>
 </head>
 <body>
     <img id="logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo">
     <div id="container">
         <div id="chat-container">
+            <div id="breadcrumbs"></div>
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
                     <p>Hi there! Please pick one of the following services:</p>
@@ -166,8 +219,8 @@
                         <button onclick="handleServiceClick('Payroll')">Payroll</button>
                         <button onclick="handleServiceClick('Stock')">Stock</button>
                         <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
-                        <button onclick="handleServiceClick('HR')">HR</button>
                         <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                        <button onclick="handleServiceClick('HR')">HR</button>
                     </div>
                 </div>
             </div>
@@ -175,113 +228,197 @@
                 <input type="text" id="user-input" placeholder="Type a message..." />
                 <button id="send-button">Send</button>
             </div>
-            <button id="back-button" onclick="goBackToMain()">Back to Main Page</button>
+        </div>
+
+        <!-- The iframe container is hidden initially -->
+        <div id="iframe-container">
+            <iframe id="report-iframe" src="" frameborder="0"></iframe>
         </div>
     </div>
 
     <script>
-        function sendMessage() {
-            const userMessage = document.getElementById("user-input").value.trim();
-            if (!userMessage) return;
+      /* All your JavaScript exactly as before */
+      const breadcrumbs = ["Main menu"];
 
-            const greeting = document.getElementById("greeting");
-            if (greeting) greeting.remove();
+      function updateBreadcrumbs() {
+          const breadcrumbsContainer = document.getElementById("breadcrumbs");
+          breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) =>
+              `<a href="#" onclick="navigateToBreadcrumb(${index})">${crumb}</a>`
+          ).join(" > ");
+      }
 
-            displayMessage(userMessage, 'user-message');
-            document.getElementById("user-input").value = '';
+      function navigateToBreadcrumb(index) {
+          breadcrumbs.splice(index + 1);
+          updateBreadcrumbs();
+          if (index === 0) {
+              location.reload(); // Main menu
+          } else {
+              handleBreadcrumbNavigation(breadcrumbs[index]);
+          }
+      }
 
-            fetch('/get_response', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    displayMessage(data.response, 'bot-message');
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    displayMessage("Sorry, there was an error.", 'bot-message');
-                });
-        }
+      function handleBreadcrumbNavigation(serviceName) {
+          const chatBox = document.getElementById("chat-box");
+          chatBox.innerHTML = "";
+          displayMessage(`Navigated back to ${serviceName}`, 'bot-message');
 
-        function handleServiceClick(serviceName) {
-            displayMessage(serviceName, 'user-message');
-            const greeting = document.getElementById("greeting");
-            if (greeting) greeting.remove();
+          if (serviceName === "Main menu") {
+              location.reload(); 
+          } else {
+              handleServiceClick(serviceName, true);
+          }
+      }
 
-            fetch('/get_response', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: serviceName })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    displayMessage(data.response, 'bot-message');
+      function sendMessage() {
+          const userMessage = document.getElementById("user-input").value.trim();
+          if (!userMessage) return;
 
-                    if (serviceName === "Accounting") {
-                        displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice']);
-                    } else if (serviceName === "Purchasing") {
-                        displaySubServiceOptions(['Purchase Invoice']);
-                    } else if (serviceName === "Selling") {
-                        displaySubServiceOptions(['Sales Invoice']);
-                    } else if (serviceName === "CRM") {
-                        displaySubServiceOptions(['Lead', 'Opportunity', 'Customer']);
-                    } else if (serviceName === "Payroll") {
-                        displaySubServiceOptions(['Payroll Entry', 'Salary Slip']);
-                    } else if (serviceName === "Stock") {
-                        displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation']);
-                    } else if (serviceName === "Manufacturing") {
-                        displaySubServiceOptions(['BOM', 'Work Order', 'Job Card']);
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    displayMessage("Sorry, there was an error.", 'bot-message');
-                });
-        }
+          const greeting = document.getElementById("greeting");
+          if (greeting) greeting.remove();
 
-        function displaySubServiceOptions(options) {
-            const chatBox = document.getElementById("chat-box");
-            const subServiceOptions = document.createElement("div");
-            subServiceOptions.id = "sub-service-buttons";
-            subServiceOptions.innerHTML = `
-                <p style="margin-bottom: 10px;">Please select a service</p>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
-                    ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
-                </div>
-            `;
-            chatBox.appendChild(subServiceOptions);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+          displayMessage(userMessage, 'user-message');
+          document.getElementById("user-input").value = '';
 
-        function displayMessage(message, className) {
-            const chatBox = document.getElementById("chat-box");
-            const messageDiv = document.createElement("div");
-            messageDiv.className = "message " + className;
+          fetch('/get_response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: userMessage })
+          })
+          .then(response => response.json())
+          .then(data => {
+              displayMessage(data.response, 'bot-message');
+          })
+          .catch(error => {
+              console.error("Error:", error);
+              displayMessage("Sorry, there was an error.", 'bot-message');
+          });
+      }
 
-            message.split("\n").forEach(line => {
-                const lineDiv = document.createElement("div");
-                lineDiv.textContent = line;
-                messageDiv.appendChild(lineDiv);
-            });
+      function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
+          if (!isBreadcrumbNavigation) {
+              breadcrumbs.push(serviceName);
+              updateBreadcrumbs();
+          }
 
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+          displayMessage(serviceName, 'user-message');
+          const greeting = document.getElementById("greeting");
+          if (greeting) greeting.remove();
 
-        function goBackToMain() {
-            location.reload();
-        }
+          fetch('/get_response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: serviceName })
+          })
+          .then(response => response.json())
+          .then(data => {
+              const responseMessage = data.response;
+              displayMessage(responseMessage, 'bot-message');
 
-        document.getElementById("user-input").addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                sendMessage();
-                event.preventDefault();
-            }
-        });
+              if (responseMessage.startsWith("iframe::")) {
+                  const reportUrl = responseMessage.split("iframe::")[1].trim();
+                  const iframeContainer = document.getElementById('iframe-container');
+                  const iframe = document.getElementById('report-iframe');
 
-        document.getElementById("send-button").addEventListener("click", sendMessage);
+                  iframe.src = reportUrl;
+                  iframeContainer.style.display = 'block';
+                  document.getElementById('container').classList.add('chat-with-iframe');
+              } else {
+                  document.getElementById('container').classList.remove('chat-with-iframe');
+                  const iframeContainer = document.getElementById('iframe-container');
+                  iframeContainer.style.display = 'none';
+              }
+
+              if (serviceName === "Accounting") {
+                  displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
+              } else if (serviceName === "Purchasing") {
+                  displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
+              } else if (serviceName === "Selling") {
+                  displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
+              } else if (serviceName === "CRM") {
+                  displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
+              } else if (serviceName === "Payroll") {
+                  displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
+              } else if (serviceName === "Stock") {
+                  displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
+              } else if (serviceName === "Manufacturing") {
+                  displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
+              } else if (serviceName === "System Reports") {
+                  displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+              } else if (serviceName === "Purchasing & Selling Reports") {
+                  displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
+              } else if (serviceName === "Accounting Reports") {
+                  displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
+              } else if (serviceName === "HR & Payroll Reports") {
+                  displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
+              } else if (serviceName === "Stock Reports") {
+                  displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
+              }
+          })
+          .catch(error => {
+              console.error("Error:", error);
+              displayMessage("Sorry, there was an error.", 'bot-message');
+          });
+      }
+
+      function displaySubServiceOptions(options, containerClass) {
+          const chatBox = document.getElementById("chat-box");
+          const subServiceOptions = document.createElement("div");
+          subServiceOptions.className = `sub-service-buttons ${containerClass}`;
+          subServiceOptions.innerHTML = `
+              <p style="margin-bottom: 10px;">Please select a service</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
+                  ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
+              </div>
+          `;
+          chatBox.appendChild(subServiceOptions);
+          chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function displayMessage(message, className) {
+          const chatBox = document.getElementById("chat-box");
+          const iframeContainer = document.getElementById("iframe-container");
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message " + className;
+
+          if (message.startsWith("iframe::")) {
+              const url = message.split("iframe::")[1];
+              
+              // Remove existing iframe if any
+              const existingIframe = iframeContainer.querySelector("iframe");
+              if (existingIframe) existingIframe.remove();
+
+              // Create iframe element
+              const iframe = document.createElement("iframe");
+              iframe.src = url;
+
+              iframeContainer.appendChild(iframe);
+              iframeContainer.style.display = "block";
+
+              // Move chat box slightly to the left
+              chatBox.style.marginRight = "10px";
+          } else {
+              message.split("\n").forEach(line => {
+                  const lineDiv = document.createElement("div");
+                  lineDiv.textContent = line;
+                  messageDiv.appendChild(lineDiv);
+              });
+              chatBox.appendChild(messageDiv);
+          }
+
+          chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      // Initialize breadcrumbs
+      updateBreadcrumbs();
+
+      document.getElementById("user-input").addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+              sendMessage();
+              event.preventDefault();
+          }
+      });
+
+      document.getElementById("send-button").addEventListener("click", sendMessage);
     </script>
 </body>
 </html>

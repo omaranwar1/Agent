@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import json
+import webbrowser
+import urllib.parse
 
 #####################
 # Backend API details for additional data fetching
@@ -25,8 +27,16 @@ def chatbot_response(message):
         "payroll": "What payroll service do you need?",
         "stock": "What stock service do you need?",
         "manufacturing": "What manufacturing service do you need?",
-        "hr": "Taking you to HR",
-        "system reports": "Taking you to System Reports"
+        "system reports": "What gorup of reports do you need?",
+        "hr": "Taking you to HR"
+    }
+
+    # System Reports subdivisions and reports
+    system_reports = {
+        "purchasing & selling reports": ["Purchase Analytics", "Purchase Invoice Trends", "Sales Analytics", "Sales Invoice Trends"],
+        "accounting reports": ["General Ledger", "Balance Sheet", "Profit and Loss Statement", "Accounts Payable Summary", "Accounts Receivable Summary", "Gross Profit"],
+        "hr & payroll reports": ["Employee Attendance", "Salary Register"],
+        "stock reports": ["Stock Summary", "Stock Ledger"]
     }
 
     # Sub-services APIs
@@ -36,7 +46,7 @@ def chatbot_response(message):
         "payment entry": "/api/resource/Payment Entry?filters=[[\"docstatus\",\"=\",\"1\"]]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]",
         "sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
         "purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
-        
+
         # CRM
         "lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
         "opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
@@ -59,6 +69,18 @@ def chatbot_response(message):
     # Check if the message corresponds to a main service
     if normalized_message in services:
         return services[normalized_message]
+
+    # Check if the message corresponds to a subdivision in System Reports
+    if normalized_message in system_reports:
+        reports = system_reports[normalized_message]
+        return f"Which report do you need?\n"
+
+    # Check if the message corresponds to a specific report
+    for subdivision, reports in system_reports.items():
+        if normalized_message in [report.lower() for report in reports]:
+            encoded_report_name = urllib.parse.quote(message)
+            report_url = f"https://system.edenmea.com/app/query-report/{encoded_report_name}"
+            return f"iframe::{report_url}"  # Return a special message indicating iframe content
 
     # Check if the message corresponds to a sub-service
     if normalized_message in service_apis:
