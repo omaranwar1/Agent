@@ -55,7 +55,7 @@ def get_ai_response(user_message, session_id, api_data=None):
     # System message
     system_message = {
         "role": "system",
-        "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
+        "content": """You're an Eden ERP assistant, your name is Ramzy. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
 
 ### Here's How You Respond:
 1. **Understand the Query**:

@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ramzy</title>
+  <title>Eden Chatbot</title>
   <style>
+    /* -- All your original styles stay here exactly as they were -- */
 
     body {
       font-family: 'Roboto', sans-serif;
@@ -33,7 +34,7 @@
       width: 80%;
       height: 100vh;
       justify-content: center;
-      transition: all 0.8s ease;
+      transition: all 0.5s ease;
     }
 
     #chat-container {
@@ -45,7 +46,7 @@
       flex-direction: column;
       height: 97.4%;
       padding: 8px;
-      transition: width 0.8s ease;
+      transition: width 0.5s ease;
       position: relative; /* keep this */
     }
 
@@ -59,12 +60,12 @@
     }
 
     .message {
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        max-width: 80%;
-        white-space: pre-wrap;
-        line-height: 1.5;
+      padding: 12px 16px;
+      margin: 6px 0;
+      border-radius: 10px;
+      max-width: 80%;
+      white-space: pre-wrap;
+      line-height: 1.5;
     }
 
     .user-message {
@@ -130,7 +131,7 @@
       border-radius: 20px;
       cursor: pointer;
       background-color: #e1f5fe;
-      transition: background-color 0.8s;
+      transition: background-color 0.3s;
     }
 
     #service-buttons button:hover,
@@ -145,7 +146,7 @@
     }
 
     #breadcrumbs a {
-      color: #007fff;
+      color: #007bff;
       text-decoration: none;
       margin-right: 5px;
     }
@@ -154,44 +155,49 @@
       text-decoration: underline;
     }
 
-    /* Adjusting iframe container */
+    /* Original iframe container rules */
     #iframe-container {
-        display: none;          /* Hidden by default */
-        flex: 0 0 50%;          /* Takes 40% of the width */
-        height: 100%;           /* Matches parent container height */
-        background-color: white;
-        border-left: 2px solid #ccc;
-        box-sizing: border-box;
-        transition: all 0.8s ;      /* Remove unintended animations */
+      display: none; /* Hidden initially */
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 99%;
+      background-color: white;
+      border-left: 2px solid #ccc;
     }
 
-    /* When iframe is active */
-    .chat-with-iframe #iframe-container {
-        display: block;         /* Make the iframe container visible */
-    }
-
-    /* Ensure iframe always fills its container */
     #iframe-container iframe {
-        width: 100%;
-        height: 99%;
-        border: none;
+      width: 100%;
+      height: 100%;
+      border: none;
     }
 
-    /* Chat container width adjustment */
+    /* Original class that tries to move the chat box left */
     .chat-with-iframe #chat-container {
-        flex: 0 0 50%;          /* Reduce width when iframe is shown */
+      width: 50%;
+      margin-right: 10px;
+    }
+
+    /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+       THE IMPORTANT FIX/OVERRIDE BLOCK:
+       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* When iframe is visible, expand #container so there's room for both */
+    #container.chat-with-iframe {
+      width: 90% !important;            /* override the original 50% */
+      justify-content: space-between !important;
+      align-items: flex-start !important;
     }
 
     /* Force chat container to be 60% and iframe container 40% side by side */
     #container.chat-with-iframe #chat-container {
-      width: 50% !important;
+      width: 60% !important;
       margin-right: 0 !important;       /* remove any leftover margins if needed */
     }
 
     #container.chat-with-iframe #iframe-container {
       display: block !important;        /* ensure iframe is shown */
       position: relative !important;    /* override absolute positioning */
-      width: 50% !important;
+      width: 40% !important;
       height: auto !important;          /* let it size automatically */
       margin-left: 10px !important;     /* some spacing from chat container */
       top: auto !important;
@@ -199,25 +205,24 @@
     }
 
     .clear-history-container {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 100; /* Ensures it appears on top */
+      display: flex;
+      justify-content: center;
+      padding: 5px;
     }
 
     .clear-btn {
-        background-color: #ff4444;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.3s;
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
     }
 
     .clear-btn:hover {
-        background-color: #cc0000;
+      background-color: #cc0000;
     }
 
     /* Add these new styles for message formatting */
@@ -272,7 +277,7 @@
             <div id="breadcrumbs"></div>
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
-                    <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
+                    <p>Hi there! Please pick one of the following services:</p>
                     <div id="service-buttons">
                         <button onclick="handleServiceClick('Accounting')">Accounting</button>
                         <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
@@ -283,7 +288,6 @@
                         <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
                         <button onclick="handleServiceClick('System Reports')">System Reports</button>
                         <button onclick="handleServiceClick('HR')">HR</button>
-                        <button onclick="handleServiceClick('Create New')">Create New</button>
                     </div>
                 </div>
             </div>
@@ -306,36 +310,6 @@
       /* All your JavaScript exactly as before */
       const breadcrumbs = ["Main menu"];
 
-      /*****************************************************************/
-      function handleIframeResponse(responseMessage) {
-            if (!responseMessage.startsWith("iframe::")) return false;
-
-            const iframeUrl = responseMessage.split("iframe::")[1].trim();
-            const iframeContainer = document.getElementById('iframe-container');
-            const iframe = document.getElementById('report-iframe');
-
-            // Update iframe source
-            iframe.src = iframeUrl;
-
-            // Show iframe container and adjust UI
-            iframeContainer.style.display = 'block';
-            document.getElementById('container').classList.add('chat-with-iframe');
-
-            // Handle iframe loading errors
-            iframe.onload = () => {
-                displayMessage("Please find item in the next window", 'bot-message');
-            };
-
-            iframe.onerror = () => {
-                console.error("Failed to load iframe.");
-                displayMessage("The report failed to load. Please check the URL or try again.", 'bot-message');
-                iframeContainer.style.display = 'none'; // Hide iframe container
-                document.getElementById('container').classList.remove('chat-with-iframe');
-            };
-
-            return true; // Indicates iframe handling was successful
-        }
-      /*****************************************************************/
       function updateBreadcrumbs() {
           const breadcrumbsContainer = document.getElementById("breadcrumbs");
           breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) =>
@@ -366,121 +340,95 @@
       }
 
       function sendMessage() {
-            const userMessage = document.getElementById("user-input").value.trim();
-            if (!userMessage) return;
+          const userMessage = document.getElementById("user-input").value.trim();
+          if (!userMessage) return;
 
-            const greeting = document.getElementById("greeting");
-            if (greeting) greeting.remove();
+          const greeting = document.getElementById("greeting");
+          if (greeting) greeting.remove();
 
-            displayMessage(userMessage, 'user-message');
-            document.getElementById("user-input").value = '';
+          displayMessage(userMessage, 'user-message');
+          document.getElementById("user-input").value = '';
 
-            fetch('/get_response', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const responseMessage = data.response;
-                // Handle iframe or normal responses
-                if (!handleIframeResponse(responseMessage)) {
-                    displayMessage(responseMessage, 'bot-message');
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
-            });
-        }
+          fetch('/get_response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: userMessage })
+          })
+          .then(response => response.json())
+          .then(data => {
+              displayMessage(data.response, 'bot-message');
+          })
+          .catch(error => {
+              console.error("Error:", error);
+              displayMessage("Sorry, there was an error.", 'bot-message');
+          });
+      }
 
-        function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
-            if (!isBreadcrumbNavigation) {
-                breadcrumbs.push(serviceName);
-                updateBreadcrumbs();
-            }
+      function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
+          if (!isBreadcrumbNavigation) {
+              breadcrumbs.push(serviceName);
+              updateBreadcrumbs();
+          }
 
-            displayMessage(serviceName, 'user-message');
-            const greeting = document.getElementById("greeting");
-            if (greeting) greeting.remove();
+          displayMessage(serviceName, 'user-message');
+          const greeting = document.getElementById("greeting");
+          if (greeting) greeting.remove();
 
-            fetch('/get_response', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: serviceName })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const responseMessage = data.response;
+          fetch('/get_response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: serviceName })
+          })
+          .then(response => response.json())
+          .then(data => {
+              const responseMessage = data.response;
+              displayMessage(responseMessage, 'bot-message');
 
-                    // Ensure responseMessage exists and is valid
-                    if (!responseMessage) {
-                        throw new Error("Empty response from server.");
-                    }
+              if (responseMessage.startsWith("iframe::")) {
+                  const reportUrl = responseMessage.split("iframe::")[1].trim();
+                  const iframeContainer = document.getElementById('iframe-container');
+                  const iframe = document.getElementById('report-iframe');
 
-                    // Handle iframe responses
-                    if (!handleIframeResponse(responseMessage)) {
-                        displayMessage(responseMessage, 'bot-message');
-                    }
+                  iframe.src = reportUrl;
+                  iframeContainer.style.display = 'block';
+                  document.getElementById('container').classList.add('chat-with-iframe');
+              } else {
+                  document.getElementById('container').classList.remove('chat-with-iframe');
+                  const iframeContainer = document.getElementById('iframe-container');
+                  iframeContainer.style.display = 'none';
+              }
 
-                    // Sub-service options logic
-                    if (serviceName === "Accounting") {
-                        displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
-                    } else if (serviceName === "Purchasing") {
-                        displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
-                    } else if (serviceName === "Selling") {
-                        displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
-                    } else if (serviceName === "CRM") {
-                        displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
-                    } else if (serviceName === "Payroll") {
-                        displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
-                    } else if (serviceName === "Stock") {
-                        displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
-                    } else if (serviceName === "Manufacturing") {
-                        displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
-                    } else if (serviceName === "System Reports") {
-                        displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
-                    } else if (serviceName === "Purchasing & Selling Reports") {
-                        displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
-                    } else if (serviceName === "Accounting Reports") {
-                        displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
-                    } else if (serviceName === "HR & Payroll Reports") {
-                        displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
-                    } else if (serviceName === "Stock Reports") {
-                        displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
-                    } else if (serviceName === "Create New") {
-                        displaySubServiceOptions(['New Accounting', 'New Purchasing', 'New Selling', 'New CRM', 'New HR', 'New Payroll', 'New Stock', 'New Manufacturing', 'Other']);
-                    } else if (serviceName === "New Accounting") {
-                        displaySubServiceOptions(["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"]);
-                    } else if (serviceName === "New Purchasing") {
-                        displaySubServiceOptions([ "New Purchase Invoice", "New Purchase Receipt" ]);
-                    } else if (serviceName === "New Selling") {
-                        displaySubServiceOptions([ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ]);
-                    } else if (serviceName === "New CRM") {
-                        displaySubServiceOptions([ "New Lead", "New Opportunity", "New Customer" ]);
-                    } else if (serviceName === "New HR") {
-                        displaySubServiceOptions([ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance"]);
-                    } else if (serviceName === "New Payroll") {
-                        displaySubServiceOptions(["New Payroll Entry", "New Salary Slip" ]);
-                    } else if (serviceName === "New Stock") {
-                        displaySubServiceOptions([ "New Stock Entry", "New Stock Reconciliation" ]);
-                    } else if (serviceName === "New Manufacturing") {
-                        displaySubServiceOptions(["New BOM", "New Work Order", "New Job Card"]);
-                    } else if (serviceName === "Other") {
-                        displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
-                    }
-                })
-                .catch(error => {
-                    console.error("Error in handleServiceClick:", error);
-                    displayMessage("Sorry, there was an error(handel)", 'bot-message');
-                });
-        }
-
+              if (serviceName === "Accounting") {
+                  displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
+              } else if (serviceName === "Purchasing") {
+                  displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
+              } else if (serviceName === "Selling") {
+                  displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
+              } else if (serviceName === "CRM") {
+                  displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
+              } else if (serviceName === "Payroll") {
+                  displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
+              } else if (serviceName === "Stock") {
+                  displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
+              } else if (serviceName === "Manufacturing") {
+                  displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
+              } else if (serviceName === "System Reports") {
+                  displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+              } else if (serviceName === "Purchasing & Selling Reports") {
+                  displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
+              } else if (serviceName === "Accounting Reports") {
+                  displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
+              } else if (serviceName === "HR & Payroll Reports") {
+                  displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
+              } else if (serviceName === "Stock Reports") {
+                  displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
+              }
+          })
+          .catch(error => {
+              console.error("Error:", error);
+              displayMessage("Sorry, there was an error.", 'bot-message');
+          });
+      }
 
       function displaySubServiceOptions(options, containerClass) {
           const chatBox = document.getElementById("chat-box");
@@ -523,7 +471,7 @@
               message = message
                   .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
                   .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')        // Headers
-                  .replace(/\n- /g, '\n• ')                          // Bullet points
+                  .replace(/\n- /g, '\nâ€¢ ')                          // Bullet points
                   .replace(/\n/g, '<br>');                           // Line breaks
 
               messageDiv.innerHTML = message;
@@ -544,6 +492,7 @@
       });
 
       document.getElementById("send-button").addEventListener("click", sendMessage);
+
       document.getElementById('clearHistory').addEventListener('click', function() {
           fetch('/clear_history', {
               method: 'POST',
@@ -565,7 +514,7 @@
               greeting.id = 'greeting';
               greeting.className = 'greeting-message';
               greeting.innerHTML = `
-                  <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
+                  <p>Hi there! Please pick one of the following services:</p>
                   <div id="service-buttons">
                       <button onclick="handleServiceClick('Accounting')">Accounting</button>
                       <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
@@ -576,7 +525,6 @@
                       <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
                       <button onclick="handleServiceClick('System Reports')">System Reports</button>
                       <button onclick="handleServiceClick('HR')">HR</button>
-                      <button onclick="handleServiceClick('Create New')">Create New</button>
                   </div>
               `;
               chatBox.appendChild(greeting);
@@ -590,7 +538,7 @@
               document.getElementById('container').classList.remove('chat-with-iframe');
           })
           .catch(error => console.error('Error:', error));
-      });      
+      });
     </script>
 </body>
 </html>
