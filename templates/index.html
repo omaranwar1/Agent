@@ -60,10 +60,12 @@
     }
 
     .message {
-      padding: 8px 12px;
+      padding: 12px 16px;
       margin: 6px 0;
       border-radius: 10px;
       max-width: 80%;
+      white-space: pre-wrap;
+      line-height: 1.5;
     }
 
     .user-message {
@@ -201,6 +203,71 @@
       top: auto !important;
       right: auto !important;
     }
+
+    .clear-history-container {
+      display: flex;
+      justify-content: center;
+      padding: 5px;
+    }
+
+    .clear-btn {
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    .clear-btn:hover {
+      background-color: #cc0000;
+    }
+
+    /* Add these new styles for message formatting */
+    .message {
+        padding: 12px 16px;
+        margin: 6px 0;
+        border-radius: 10px;
+        max-width: 80%;
+        white-space: pre-wrap;  /* Preserves formatting */
+        line-height: 1.5;
+    }
+
+    /* Style markdown-like elements */
+    .bot-message h3 {
+        margin: 8px 0;
+        font-size: 1.1em;
+        color: #2c3e50;
+    }
+
+    .bot-message strong,
+    .bot-message b {
+        color: #2c3e50;
+    }
+
+    .bot-message ul,
+    .bot-message ol {
+        margin: 8px 0;
+        padding-left: 20px;
+    }
+
+    .bot-message li {
+        margin: 4px 0;
+    }
+
+    /* Style for bullet points and lists */
+    .bot-message ul {
+        list-style-type: disc;
+    }
+
+    /* Style for horizontal rules */
+    .bot-message hr {
+        border: 0;
+        border-top: 1px solid #eee;
+        margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -227,6 +294,9 @@
             <div class="input-container">
                 <input type="text" id="user-input" placeholder="Type a message..." />
                 <button id="send-button">Send</button>
+            </div>
+            <div class="clear-history-container">
+                <button id="clearHistory" class="clear-btn">Clear Chat History</button>
             </div>
         </div>
 
@@ -397,11 +467,14 @@
               // Move chat box slightly to the left
               chatBox.style.marginRight = "10px";
           } else {
-              message.split("\n").forEach(line => {
-                  const lineDiv = document.createElement("div");
-                  lineDiv.textContent = line;
-                  messageDiv.appendChild(lineDiv);
-              });
+              // Convert markdown-style formatting
+              message = message
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
+                  .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')        // Headers
+                  .replace(/\n- /g, '\n• ')                          // Bullet points
+                  .replace(/\n/g, '<br>');                           // Line breaks
+
+              messageDiv.innerHTML = message;
               chatBox.appendChild(messageDiv);
           }
 
@@ -419,6 +492,53 @@
       });
 
       document.getElementById("send-button").addEventListener("click", sendMessage);
+
+      document.getElementById('clearHistory').addEventListener('click', function() {
+          fetch('/clear_history', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  session_id: 'default'
+              })
+          })
+          .then(response => response.json())
+          .then(data => {
+              // Clear the chat display
+              const chatBox = document.getElementById('chat-box');
+              chatBox.innerHTML = '';
+              
+              // Re-add the initial greeting
+              const greeting = document.createElement('div');
+              greeting.id = 'greeting';
+              greeting.className = 'greeting-message';
+              greeting.innerHTML = `
+                  <p>Hi there! Please pick one of the following services:</p>
+                  <div id="service-buttons">
+                      <button onclick="handleServiceClick('Accounting')">Accounting</button>
+                      <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
+                      <button onclick="handleServiceClick('Selling')">Selling</button>
+                      <button onclick="handleServiceClick('CRM')">CRM</button>
+                      <button onclick="handleServiceClick('Payroll')">Payroll</button>
+                      <button onclick="handleServiceClick('Stock')">Stock</button>
+                      <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
+                      <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                      <button onclick="handleServiceClick('HR')">HR</button>
+                  </div>
+              `;
+              chatBox.appendChild(greeting);
+              
+              // Reset breadcrumbs
+              breadcrumbs.length = 1;
+              updateBreadcrumbs();
+              
+              // Hide iframe if visible
+              document.getElementById('iframe-container').style.display = 'none';
+              document.getElementById('container').classList.remove('chat-with-iframe');
+          })
+          .catch(error => console.error('Error:', error));
+      });
     </script>
 </body>
 </html>

@@ -3,6 +3,10 @@ import requests
 import json
 import webbrowser
 import urllib.parse
+import os
+import base64
+from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 #####################
 # Backend API details for additional data fetching
@@ -13,8 +17,96 @@ header = {
 #####################
 app = Flask(__name__)
 
+# Azure OpenAI Configuration
+endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.openai.azure.com/")
+deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")
+subscription_key = os.getenv("AZURE_OPENAI_API_KEY", "22jtOiYXuu43EctfKGvEQCKYqtS6t4EVZMjp0Hn4HErT5dmmMUFvJQQJ99BAACHYHv6XJ3w3AAAAACOGOeyL")
+
+# Initialize Azure OpenAI client with API key
+client = AzureOpenAI(
+    azure_endpoint=endpoint,
+    api_key=subscription_key,
+    api_version="2024-05-01-preview"
+)
+
+# Chat history storage
+chat_histories = {}
+
+def get_ai_response(user_message, session_id, api_data=None):
+    # Initialize chat history for new sessions
+    if session_id not in chat_histories:
+        chat_histories[session_id] = []
+    
+    # System message
+    system_message = {
+        "role": "system",
+        "content": """You're an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
+
+### Here's How You Respond:
+1. **Understand the Query**:
+   - What does the user really want? Do they need a summary of the data? Are they looking for trends, totals, or patterns? Keep it simple and relevant.
+
+2. **Present Data Nicely**:
+   - If it's about showing the data, make it easy to read. Use bullet points, or short paragraphs. Highlight what matters most, like totals, statuses, or key details.
+
+3. **Give Insights if Asked**:
+   - If the query is about "why" or "what does this mean," dig a little deeper. Add up totals, find patterns, or compare the data to offer meaningful insights.
+
+4. **Be Conversational**:
+   - Talk to the user like you're chatting with a colleague. Be friendly but professional.
+
+5. **Handle Gaps Gracefully**:
+   - If the query or data is unclear, ask for clarification.
+6. **currencies are also in EGP unless stated otherwise**"""
+    }
+
+    # Prepare messages including history (limited to last 10 messages)
+    messages = [system_message]
+    messages.extend(chat_histories[session_id][-10:])  # Keep last 10 messages
+    
+    # Add current user message and API data if available
+    current_message = {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": user_message}
+        ]
+    }
+    if api_data:
+        current_message["content"].append({"type": "text", "text": json.dumps(api_data)})
+    
+    messages.append(current_message)
+
+    try:
+        # Get completion from Azure OpenAI
+        completion = client.chat.completions.create(
+            model=deployment,
+            messages=messages,
+            max_tokens=800,
+            temperature=0.7,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None,
+            stream=False
+        )
+
+        # Extract the response
+        ai_response = completion.choices[0].message.content
+
+        # Store the conversation
+        chat_histories[session_id].append(current_message)
+        chat_histories[session_id].append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": ai_response}]
+        })
+
+        return ai_response
+
+    except Exception as e:
+        return f"Error getting AI response: {str(e)}"
+
 # Chatbot logic
-def chatbot_response(message):
+def chatbot_response(message, session_id):
     # Normalize the message
     normalized_message = message.lower()
 
@@ -80,7 +172,7 @@ def chatbot_response(message):
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
             report_url = f"https://system.edenmea.com/app/query-report/{encoded_report_name}"
-            return f"iframe::{report_url}"  # Return a special message indicating iframe content
+            return f"iframe::{report_url}"
 
     # Check if the message corresponds to a sub-service
     if normalized_message in service_apis:
@@ -88,22 +180,14 @@ def chatbot_response(message):
         api_url = base_url + service_apis[normalized_message]
         try:
             response = requests.get(api_url, headers=header)
-            response.raise_for_status()  # Raise an error for bad responses
+            response.raise_for_status()
             data = response.json()
-
-            # Format the response data
-            if "data" in data and len(data["data"]) > 0:
-                formatted_data = "\n".join([
-                    json.dumps(entry, indent=2) for entry in data["data"]
-                ])
-                return f"Here are the results for {message.title()}:\n{formatted_data}"
-            else:
-                return f"No results found for {message.title()}."
+            return get_ai_response(message, session_id, data)
         except requests.exceptions.RequestException as e:
-            return f"Error retrieving data for {message.title()}: {str(e)}"
+            return f"Error retrieving data: {str(e)}"
 
-    # Default response for unrecognized input
-    return "I'm not sure how to help with that. Please choose a valid option."
+    # Instead of returning the default message, pass unrecognized input to the AI
+    return get_ai_response(message, session_id)
 
 @app.route("/")
 def home():
@@ -112,8 +196,16 @@ def home():
 @app.route("/get_response", methods=["POST"])
 def get_response():
     user_message = request.json.get("message")
-    response = chatbot_response(user_message)
+    session_id = request.json.get("session_id", "default")  # Get or create session ID
+    response = chatbot_response(user_message, session_id)
     return jsonify({"response": response})
+
+@app.route("/clear_history", methods=["POST"])
+def clear_history():
+    session_id = request.json.get("session_id", "default")
+    if session_id in chat_histories:
+        chat_histories[session_id] = []
+    return jsonify({"status": "success", "message": "Chat history cleared"})
 
 if __name__ == "__main__":
     app.run(debug=True)
