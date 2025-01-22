@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eden Chatbot</title>
+  <title>Ramzy</title>
   <style>
-    /* -- All your original styles stay here exactly as they were -- */
 
     body {
       font-family: 'Roboto', sans-serif;
@@ -34,7 +33,7 @@
       width: 80%;
       height: 100vh;
       justify-content: center;
-      transition: all 0.5s ease;
+      transition: all 0.8s ease;
     }
 
     #chat-container {
@@ -46,7 +45,7 @@
       flex-direction: column;
       height: 97.4%;
       padding: 8px;
-      transition: width 0.5s ease;
+      transition: width 0.8s ease;
       position: relative; /* keep this */
     }
 
@@ -129,7 +128,7 @@
       border-radius: 20px;
       cursor: pointer;
       background-color: #e1f5fe;
-      transition: background-color 0.3s;
+      transition: background-color 0.8s;
     }
 
     #service-buttons button:hover,
@@ -153,49 +152,45 @@
       text-decoration: underline;
     }
 
-    /* Original iframe container rules */
+    /* Adjusting iframe container */
     #iframe-container {
-      display: none; /* Hidden initially */
-      top: 0;
-      right: 0;
-      width: 100%;
-      height: 99%;
-      background-color: white;
-      border-left: 2px solid #ccc;
+        display: none;          /* Hidden by default */
+        flex: 0 0 50%;          /* Takes 40% of the width */
+        height: 100%;           /* Matches parent container height */
+        background-color: white;
+        border-left: 2px solid #ccc;
+        box-sizing: border-box;
+        transition: all 0.8s ;      /* Remove unintended animations */
     }
 
+    /* When iframe is active */
+    .chat-with-iframe #iframe-container {
+        display: block;         /* Make the iframe container visible */
+    }
+
+    /* Ensure iframe always fills its container */
     #iframe-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+        width: 100%;
+        height: 99%;
+        border: none;
     }
 
-    /* Original class that tries to move the chat box left */
+    /* Chat container width adjustment */
     .chat-with-iframe #chat-container {
-      width: 50%;
-      margin-right: 10px;
+        flex: 0 0 50%;          /* Reduce width when iframe is shown */
     }
 
-    /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-       THE IMPORTANT FIX/OVERRIDE BLOCK:
-       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-    /* When iframe is visible, expand #container so there's room for both */
-    #container.chat-with-iframe {
-      width: 90% !important;            /* override the original 50% */
-      justify-content: space-between !important;
-      align-items: flex-start !important;
-    }
 
     /* Force chat container to be 60% and iframe container 40% side by side */
     #container.chat-with-iframe #chat-container {
-      width: 60% !important;
+      width: 50% !important;
       margin-right: 0 !important;       /* remove any leftover margins if needed */
     }
 
     #container.chat-with-iframe #iframe-container {
       display: block !important;        /* ensure iframe is shown */
       position: relative !important;    /* override absolute positioning */
-      width: 40% !important;
+      width: 50% !important;
       height: auto !important;          /* let it size automatically */
       margin-left: 10px !important;     /* some spacing from chat container */
       top: auto !important;
@@ -210,7 +205,7 @@
             <div id="breadcrumbs"></div>
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
-                    <p>Hi there! Please pick one of the following services:</p>
+                    <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
                     <div id="service-buttons">
                         <button onclick="handleServiceClick('Accounting')">Accounting</button>
                         <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
@@ -221,6 +216,7 @@
                         <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
                         <button onclick="handleServiceClick('System Reports')">System Reports</button>
                         <button onclick="handleServiceClick('HR')">HR</button>
+                        <button onclick="handleServiceClick('Create New')">Create New</button>
                     </div>
                 </div>
             </div>
@@ -270,95 +266,161 @@
       }
 
       function sendMessage() {
-          const userMessage = document.getElementById("user-input").value.trim();
-          if (!userMessage) return;
+            const userMessage = document.getElementById("user-input").value.trim();
+            if (!userMessage) return;
 
-          const greeting = document.getElementById("greeting");
-          if (greeting) greeting.remove();
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
 
-          displayMessage(userMessage, 'user-message');
-          document.getElementById("user-input").value = '';
+            displayMessage(userMessage, 'user-message');
+            document.getElementById("user-input").value = '';
 
-          fetch('/get_response', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: userMessage })
-          })
-          .then(response => response.json())
-          .then(data => {
-              displayMessage(data.response, 'bot-message');
-          })
-          .catch(error => {
-              console.error("Error:", error);
-              displayMessage("Sorry, there was an error.", 'bot-message');
-          });
-      }
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseMessage = data.response;
 
-      function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
-          if (!isBreadcrumbNavigation) {
-              breadcrumbs.push(serviceName);
-              updateBreadcrumbs();
-          }
+                if (responseMessage.startsWith("iframe::")) {
+                    const iframeUrl = responseMessage.split("iframe::")[1].trim();
+                    const iframeContainer = document.getElementById('iframe-container');
+                    const iframe = document.getElementById('report-iframe');
 
-          displayMessage(serviceName, 'user-message');
-          const greeting = document.getElementById("greeting");
-          if (greeting) greeting.remove();
+                    // Update the iframe's source
+                    iframe.src = iframeUrl;
 
-          fetch('/get_response', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: serviceName })
-          })
-          .then(response => response.json())
-          .then(data => {
-              const responseMessage = data.response;
-              displayMessage(responseMessage, 'bot-message');
+                    // Handle iframe loading errors
+                    iframe.onload = () => {
+                        console.log("Iframe loaded successfully.");
+                    };
 
-              if (responseMessage.startsWith("iframe::")) {
-                  const reportUrl = responseMessage.split("iframe::")[1].trim();
-                  const iframeContainer = document.getElementById('iframe-container');
-                  const iframe = document.getElementById('report-iframe');
+                    iframe.onerror = () => {
+                        console.error("Failed to load iframe.");
+                        displayMessage("The report failed to load. Please check the URL or try again.", 'bot-message');
+                        iframeContainer.style.display = 'none'; // Hide the iframe container
+                        document.getElementById('container').classList.remove('chat-with-iframe');
+                    };
 
-                  iframe.src = reportUrl;
-                  iframeContainer.style.display = 'block';
-                  document.getElementById('container').classList.add('chat-with-iframe');
-              } else {
-                  document.getElementById('container').classList.remove('chat-with-iframe');
-                  const iframeContainer = document.getElementById('iframe-container');
-                  iframeContainer.style.display = 'none';
-              }
+                    // Show the iframe container
+                    iframeContainer.style.display = 'block';
+                    document.getElementById('container').classList.add('chat-with-iframe');
+                } else {
+                    // Display normal chatbot responses
+                    displayMessage(responseMessage, 'bot-message');
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
+            });
+        }
 
-              if (serviceName === "Accounting") {
-                  displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
-              } else if (serviceName === "Purchasing") {
-                  displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
-              } else if (serviceName === "Selling") {
-                  displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
-              } else if (serviceName === "CRM") {
-                  displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
-              } else if (serviceName === "Payroll") {
-                  displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
-              } else if (serviceName === "Stock") {
-                  displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
-              } else if (serviceName === "Manufacturing") {
-                  displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
-              } else if (serviceName === "System Reports") {
-                  displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
-              } else if (serviceName === "Purchasing & Selling Reports") {
-                  displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
-              } else if (serviceName === "Accounting Reports") {
-                  displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
-              } else if (serviceName === "HR & Payroll Reports") {
-                  displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
-              } else if (serviceName === "Stock Reports") {
-                  displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
-              }
-          })
-          .catch(error => {
-              console.error("Error:", error);
-              displayMessage("Sorry, there was an error.", 'bot-message');
-          });
-      }
+
+        function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
+            if (!isBreadcrumbNavigation) {
+                breadcrumbs.push(serviceName);
+                updateBreadcrumbs();
+            }
+
+            displayMessage(serviceName, 'user-message');
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: serviceName })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const responseMessage = data.response;
+
+                    // Ensure responseMessage exists and is valid
+                    if (!responseMessage) {
+                        throw new Error("Empty response from server.");
+                    }
+
+                    // Handle iframe responses
+                    if (responseMessage.startsWith("iframe::")) {
+                        const reportUrl = responseMessage.split("iframe::")[1].trim();
+                        const iframeContainer = document.getElementById('iframe-container');
+                        const iframe = document.getElementById('report-iframe');
+
+                        // Update the iframe source and show the iframe container
+                        iframe.src = reportUrl;
+                        iframeContainer.style.display = 'block';
+                        document.getElementById('container').classList.add('chat-with-iframe');
+                    } else {
+                        // Hide iframe container if no iframe response
+                        document.getElementById('container').classList.remove('chat-with-iframe');
+                        const iframeContainer = document.getElementById('iframe-container');
+                        iframeContainer.style.display = 'none';
+
+                        // Display normal chatbot responses
+                        displayMessage(responseMessage, 'bot-message');
+                    }
+
+                    // Sub-service options logic
+                    if (serviceName === "Accounting") {
+                        displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
+                    } else if (serviceName === "Purchasing") {
+                        displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
+                    } else if (serviceName === "Selling") {
+                        displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
+                    } else if (serviceName === "CRM") {
+                        displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
+                    } else if (serviceName === "Payroll") {
+                        displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
+                    } else if (serviceName === "Stock") {
+                        displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
+                    } else if (serviceName === "Manufacturing") {
+                        displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
+                    } else if (serviceName === "System Reports") {
+                        displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+                    } else if (serviceName === "Purchasing & Selling Reports") {
+                        displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
+                    } else if (serviceName === "Accounting Reports") {
+                        displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
+                    } else if (serviceName === "HR & Payroll Reports") {
+                        displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
+                    } else if (serviceName === "Stock Reports") {
+                        displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
+                    } else if (serviceName === "Create New") {
+                        displaySubServiceOptions(['New Accounting', 'New Purchasing', 'New Selling', 'New CRM', 'New HR', 'New Payroll', 'New Stock', 'New Manufacturing', 'Other']);
+                    } else if (serviceName === "New Accounting") {
+                        displaySubServiceOptions(["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"]);
+                    } else if (serviceName === "New Purchasing") {
+                        displaySubServiceOptions([ "New Purchase Invoice", "New Purchase Receipt" ]);
+                    } else if (serviceName === "New Selling") {
+                        displaySubServiceOptions([ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ]);
+                    } else if (serviceName === "New CRM") {
+                        displaySubServiceOptions([ "New Lead", "New Opportunity", "New Customer" ]);
+                    } else if (serviceName === "New HR") {
+                        displaySubServiceOptions([ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendence Tool", "New Upload Attendence"]);
+                    } else if (serviceName === "New Payroll") {
+                        displaySubServiceOptions(["New Payroll Entry", "New Salary Slip" ]);
+                    } else if (serviceName === "New Stock") {
+                        displaySubServiceOptions([ "New Stock Entry", "New Stock Reconciliation" ]);
+                    } else if (serviceName === "New Manufacturing") {
+                        displaySubServiceOptions(["New BOM", "New Work Order", "New Job Card"]);
+                    } else if (serviceName === "Other") {
+                        displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error in handleServiceClick:", error);
+                    displayMessage("Sorry, there was an error(handel)", 'bot-message');
+                });
+        }
+
 
       function displaySubServiceOptions(options, containerClass) {
           const chatBox = document.getElementById("chat-box");

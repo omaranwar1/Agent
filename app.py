@@ -27,8 +27,9 @@ def chatbot_response(message):
         "payroll": "What payroll service do you need?",
         "stock": "What stock service do you need?",
         "manufacturing": "What manufacturing service do you need?",
-        "system reports": "What gorup of reports do you need?",
-        "hr": "Taking you to HR"
+        "system reports": "What group of reports do you need?",
+        "hr": "Taking you to HR",
+        "create new": "What type of data do you want to create?"
     }
 
     # System Reports subdivisions and reports
@@ -37,6 +38,18 @@ def chatbot_response(message):
         "accounting reports": ["General Ledger", "Balance Sheet", "Profit and Loss Statement", "Accounts Payable Summary", "Accounts Receivable Summary", "Gross Profit"],
         "hr & payroll reports": ["Employee Attendance", "Salary Register"],
         "stock reports": ["Stock Summary", "Stock Ledger"]
+    }
+
+    system_data_entry = {
+        "new accounting": ["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"],
+        "new purchasing": [ "New Purchase Invoice", "New Purchase Receipt" ],
+        "new selling": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
+        "new crm": [ "New Lead", "New Opportunity", "New Customer" ],
+        "new hr": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendence Tool", "New Upload Attendence"],
+        "new payroll": ["New Payroll Entry", "New Salary Slip" ],
+        "new stock": [ "New Stock Entry", "New Stock Reconciliation"],
+        "new manufacturing": ["New BOM", "New Work Order", "New Job Card"],
+        "other": ["New Prospect",  "New Maintenance Schedule" ]
     }
 
     # Sub-services APIs
@@ -66,6 +79,8 @@ def chatbot_response(message):
         "job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]"
     }
 
+    # Data
+
     # Check if the message corresponds to a main service
     if normalized_message in services:
         return services[normalized_message]
@@ -80,7 +95,23 @@ def chatbot_response(message):
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
             report_url = f"https://system.edenmea.com/app/query-report/{encoded_report_name}"
+            report_url = "https://en.wikipedia.org/wiki/Main_Page"
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
+        
+
+    # Check if the message corresponds to a subdivision in Data Entry
+    if normalized_message in system_data_entry:
+        new_docs = system_data_entry[normalized_message]
+        return f"Which document do you want to add?\n"
+    
+    # Check if the message corresponds to a specific document
+    for subdivision, new_docs in system_data_entry.items():
+        if normalized_message in [new_doc.lower() for new_doc in new_docs]:
+            print(normalized_message)
+            encoded_doc_name = urllib.parse.quote(message)
+            doc_url = f"https://system.edenmea.com/app/{encoded_doc_name}/new{encoded_doc_name}"
+            #doc_url = "https://en.wikipedia.org/wiki/Main_Page"
+            return f"iframe::{doc_url}"  # Return a special message indicating iframe content
 
     # Check if the message corresponds to a sub-service
     if normalized_message in service_apis:
