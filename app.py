@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import requests
 import json
 import webbrowser
@@ -8,13 +8,10 @@ import base64
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-
 #####################
 # Backend API details for additional data fetching
-base_url = "http://system.edenmea.com"
-header = {
-    "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
-}
+# base_url = "https://system.edenmea.com"
+# header = {"Authorization": "token 92420cab12d4143:54f1bb6f943e856"}
 #####################
 app = Flask(__name__)
 
@@ -33,6 +30,33 @@ client = AzureOpenAI(
 # Chat history storage
 chat_histories = {}
 
+# Add a state tracker dictionary (new)
+session_states = {}
+
+# Simplified state management (new)
+STATES = {
+    'NAVIGATION': 'navigation',  # For menu navigation and form creation
+    'DATA_ANALYSIS': 'data_analysis'  # For viewing and analyzing data
+}
+
+# User credentials and their corresponding base URLs and headers
+user_credentials = {
+    "admin": {
+        "password": "admin",
+        "base_url": "https://system.edenmea.com",
+        "header": {
+            "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
+        }
+    },
+    "peter": {
+        "password": "peter",
+        "base_url": "https://system.edenmea.com",
+        "header": {
+            "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
+        }
+    }
+}
+
 # Function to create the URL for data entry
 def generate_url(input_string):
     # Check if the input matches specific cases
@@ -47,13 +71,50 @@ def generate_url(input_string):
         url = f"{base_url}/app/{doctype}/new-{doctype}"
     return url
 
-def get_ai_response(user_message, session_id, api_data=None):
-    # Initialize chat history for new sessions
+def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     if session_id not in chat_histories:
         chat_histories[session_id] = []
     
-    # System message
-    system_message = {
+    # Initialize or get session state
+    if session_id not in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    
+    # Update state based on explicit state action
+    if state_action:
+        session_states[session_id] = STATES.get(state_action, STATES['NAVIGATION'])
+
+    # Define the two system messages
+    system_messages = {
+        STATES['NAVIGATION']: {
+            "role": "system",
+            "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help.
+
+Your primary role is to:
+1. Guide users through the main menu options
+2. Help them understand what each section does
+3. Provide clear navigation instructions
+
+Main Menu Structure:
+- Accounting: Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice
+- Purchasing: Purchase Invoice, Purchase Receipt
+- Selling: Sales Invoice, Sales Order, Quotations
+- CRM: Lead, Opportunity, Customer
+- Payroll: Payroll Entry, Salary Slip
+- Stock: Stock Entry, Stock Reconciliation
+- Manufacturing: BOM, Work Order, Job Card
+- System Reports: Various report categories
+- HR: Leave Applications, Attendance Tools
+- Create New: access to create any document creating any document is done there(New Accounting, New Purchasing, New Selling, New CRM , New HR, New Payroll, New Stock, New Manufacturing, Other(New Prospect
+, New Maintenance Schedule)) all of these are buttons in Create New. Guide the user to the right button based on the user input.
+
+Remember:
+- Keep responses focused on navigation and guidance
+- Explain options clearly and concisely
+- Help users find the right tool for their needs
+- Currencies are in EGP unless stated otherwise
+- make your presentation simple and easy to read"""
+        },
+        STATES['DATA_ANALYSIS']: {
         "role": "system",
         "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
 
@@ -73,11 +134,16 @@ def get_ai_response(user_message, session_id, api_data=None):
 5. **Handle Gaps Gracefully**:
    - If the query or data is unclear, ask for clarification.
 6. **currencies are also in EGP unless stated otherwise**"""
+        }
     }
 
-    # Prepare messages including history (limited to last 10 messages)
+    # Use the appropriate system message based on current state
+    current_state = session_states[session_id]
+    system_message = system_messages.get(current_state, system_messages[STATES['NAVIGATION']])
+
+    # Prepare messages including history
     messages = [system_message]
-    messages.extend(chat_histories[session_id][-10:])  # Keep last 10 messages
+    messages.extend(chat_histories[session_id][-10:])
     
     # Add current user message and API data if available
     current_message = {
@@ -122,12 +188,17 @@ def get_ai_response(user_message, session_id, api_data=None):
 
 
 # Chatbot logic
-def chatbot_response(message,session_id):
+def chatbot_response(message,session_id,state_action=None):
+    # Check if returning to main menu (including page reload)
+    if message.lower() in ["main menu", "page_reload"]:  # Added page_reload variant
+        session_states[session_id] = STATES['NAVIGATION']
+        return get_ai_response("What can I help you with?", session_id, 'NAVIGATION')
+    
     # Normalize the message
     normalized_message = message.lower()
 
     # Main services
-    services = {
+    services = { 
         "accounting": "What accounting service do you need?",
         "purchasing": "What purchasing service do you need?",
         "selling": "What selling service do you need?",
@@ -136,9 +207,18 @@ def chatbot_response(message,session_id):
         "stock": "What stock service do you need?",
         "manufacturing": "What manufacturing service do you need?",
         "system reports": "What group of reports do you need?",
-        "hr": "Taking you to HR",
-        "create new": "What type of data do you want to create?"
+        "hr": "What HR service do you need?",
+        "create new": "What type of data do you want to create?",
+        "show projects": "what project do you want to view?",
+        "post" : "What post do you want to use?" # POST TEST----------------
     }
+
+    # POST TEST----------------
+    Post_list = {
+        'post employee' : '/api/resource/User'
+    }
+
+    # ------------------------
 
     # System Reports subdivisions and reports
     system_reports = {
@@ -154,7 +234,7 @@ def chatbot_response(message,session_id):
         "new purchasing": [ "New Purchase Invoice", "New Purchase Receipt" ],
         "new selling": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
         "new crm": [ "New Lead", "New Opportunity", "New Customer" ],
-        "new hr": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance"],
+        "new hr": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee" ],
         "new payroll": ["New Payroll Entry", "New Salary Slip" ],
         "new stock": [ "New Stock Entry", "New Stock Reconciliation"],
         "new manufacturing": ["New BOM", "New Work Order", "New Job Card"],
@@ -169,10 +249,17 @@ def chatbot_response(message,session_id):
         "sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
         "purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
 
+        # selling
+        "quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]",
+        "delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]',
+
         # CRM
         "lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
         "opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
         "customer": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]",
+
+        # HR
+        "employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]',
 
         # Payroll
         "payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]",
@@ -185,14 +272,38 @@ def chatbot_response(message,session_id):
         # Manufacturing
         "bom": "/api/resource/BOM?filters=[]&fields=[\"name\", \"item\", \"is_active\", \"is_default\"]",
         "work order": "/api/resource/Work Order?filters=[]&fields=[\"production_item\", \"status\", \"name\"]",
-        "job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]"
+        "job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]",
+
+        # Projects
+        "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
+        "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
+        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=200",
+        "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
-    # Data
+   
 
     # Check if the message corresponds to a main service
+    # If clicking a main service button, reset to navigation state
     if normalized_message in services:
+        session_states[session_id] = STATES['NAVIGATION']
         return services[normalized_message]
+    
+    # If already in DATA_ANALYSIS state, maintain it
+    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
+        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
+    
+    # Check if it's a service API request
+    if normalized_message in service_apis:
+        state_action = 'DATA_ANALYSIS'  # Set state for data viewing
+        api_url = base_url + service_apis[normalized_message]
+        try:
+            response = requests.get(api_url, headers=header)
+            response.raise_for_status()
+            data = response.json()
+            return get_ai_response(message, session_id, state_action, data)
+        except requests.exceptions.RequestException as e:
+            return f"Error retrieving data: {str(e)}"
 
     # Check if the message corresponds to a subdivision in System Reports
     if normalized_message in system_reports:
@@ -204,7 +315,7 @@ def chatbot_response(message,session_id):
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
             report_url = f"https://system.edenmea.com/app/query-report/{encoded_report_name}"
-            report_url = "https://en.wikipedia.org/wiki/Main_Page"
+            #report_url = "https://en.wikipedia.org/wiki/Main_Page"
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
         
 
@@ -225,19 +336,45 @@ def chatbot_response(message,session_id):
     if normalized_message in service_apis:
         # Make the API call
         api_url = base_url + service_apis[normalized_message]
+        # print(api_url)
         try:
             response = requests.get(api_url, headers=header)
             response.raise_for_status()  # Raise an error for bad responses
             data = response.json()
             return get_ai_response(message, session_id, data)
         except requests.exceptions.RequestException as e:
-            return f"Error retrieving data: {str(e)}"
+            if str(e).startswith("403 Client Error: FORBIDDEN "):
+                return "You are not allowed to view this information"
+            else:
+                return f"Error retrieving data: {str(e)}"
 
     # Instead of returning the default message, pass unrecognized input to the AI
     return get_ai_response(message, session_id)
 
+@app.route("/login", methods=["GET"])
+def login():
+    return render_template("login.html")
+
+@app.route("/authenticate", methods=["POST"])
+def authenticate():
+    username = request.json.get("username")
+    password = request.json.get("password")
+    
+    if username in user_credentials and user_credentials[username]["password"] == password:
+        # Set the base_url and header for the authenticated user
+        global base_url, header
+        base_url = user_credentials[username]["base_url"]
+        header = user_credentials[username]["header"]
+        return jsonify({"success": True, "redirect": url_for('chatbot')})
+    
+    return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
 @app.route("/")
 def home():
+    return redirect(url_for('login'))
+
+@app.route("/chatbot")
+def chatbot():
     return render_template("index.html")
 
 @app.route("/get_response", methods=["POST"])
@@ -252,7 +389,17 @@ def clear_history():
     session_id = request.json.get("session_id", "default")
     if session_id in chat_histories:
         chat_histories[session_id] = []
+    if session_id in session_states:
+        session_states[session_id] = STATES['NAVIGATION']  # Reset state to navigation
     return jsonify({"status": "success", "message": "Chat history cleared"})
+
+@app.route("/reset_state", methods=["POST"])
+def reset_state():
+    session_id = request.json.get("session_id", "default")
+    if session_id in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    return jsonify({"status": "success", "message": "State reset to navigation"})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
