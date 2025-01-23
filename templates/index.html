@@ -231,24 +231,35 @@
 
     /* Style markdown-like elements */
     .bot-message h3 {
-        margin: 8px 0;
-        font-size: 1.1em;
+        margin: 12px 0;
+        font-size: 1.2em;
         color: #2c3e50;
+        font-weight: bold;
+    }
+
+    .bot-message h2 {
+        margin: 15px 0;
+        font-size: 1.5em;
+        color: #2c3e50;
+        font-weight: bold;
     }
 
     .bot-message strong,
     .bot-message b {
         color: #2c3e50;
+        font-weight: bold;
     }
 
     .bot-message ul,
     .bot-message ol {
-        margin: 8px 0;
+        margin: 10px 0;
         padding-left: 20px;
     }
 
     .bot-message li {
-        margin: 4px 0;
+        margin: 5px 0;
+        line-height: 1.6;
+        color: #555;
     }
 
     /* Style for bullet points and lists */
@@ -257,11 +268,22 @@
     }
 
     /* Style for horizontal rules */
-    .bot-message hr {
+    .bot-message hr,
+    .custom-divider {
         border: 0;
-        border-top: 1px solid #eee;
-        margin: 10px 0;
+        border-top: 1px solid #ccc;
+        margin: 20px 0;
     }
+
+    /* Style for # (heading) */
+    .hash-heading {
+        font-size: 1.8em;
+        font-weight: bold;
+        margin: 25px 0 15px;
+        color: #333;
+        line-height: 1.4;
+    }
+
 
     /* Add these new styles for the logout button */
     .logout-container {
@@ -285,6 +307,63 @@
 
     .logout-btn:hover {
         background-color: #cc0000;
+    }
+     /* Add these new styles for the loading animation */
+     .loading-container {
+        display: none;
+        text-align: left;
+        margin: 10px 0;
+    }
+
+    .loading-dots {
+        display: inline-block;
+        position: relative;
+        width: 60px;
+        height: 20px;
+    }
+
+    .loading-dots div {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4797ed;
+        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+    }
+
+    .loading-dots div:nth-child(1) {
+        left: 6px;
+        animation: loading1 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(2) {
+        left: 6px;
+        animation: loading2 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(3) {
+        left: 26px;
+        animation: loading2 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(4) {
+        left: 45px;
+        animation: loading3 0.6s infinite;
+    }
+
+    @keyframes loading1 {
+        0% { transform: scale(0); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes loading2 {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(19px, 0); }
+    }
+
+    @keyframes loading3 {
+        0% { transform: scale(1); }
+        100% { transform: scale(0); }
     }
   </style>
 </head>
@@ -399,6 +478,30 @@
           }
       }
 
+      function showLoading() {
+          const chatBox = document.getElementById("chat-box");
+          const loadingDiv = document.createElement("div");
+          loadingDiv.className = "loading-container";
+          loadingDiv.innerHTML = `
+              <div class="loading-dots">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+              </div>
+          `;
+          chatBox.appendChild(loadingDiv);
+          loadingDiv.style.display = 'block';
+          chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function hideLoading() {
+          const loadingContainer = document.querySelector('.loading-container');
+          if (loadingContainer) {
+              loadingContainer.remove();
+          }
+      }
+
       function sendMessage() {
             const userMessage = document.getElementById("user-input").value.trim();
             if (!userMessage) return;
@@ -409,6 +512,8 @@
             displayMessage(userMessage, 'user-message');
             document.getElementById("user-input").value = '';
 
+            showLoading(); // Show loading animation
+
             fetch('/get_response', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -416,6 +521,7 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading(); // Hide loading animation
                 const responseMessage = data.response;
                 // Handle iframe or normal responses
                 if (!handleIframeResponse(responseMessage)) {
@@ -423,6 +529,7 @@
                 }
             })
             .catch(error => {
+                hideLoading(); // Hide loading animation on error
                 console.error("Error:", error);
                 displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
             });
@@ -437,6 +544,8 @@
             displayMessage(serviceName, 'user-message');
             const greeting = document.getElementById("greeting");
             if (greeting) greeting.remove();
+
+            showLoading(); // Show loading animation
 
             fetch('/get_response', {
                 method: 'POST',
@@ -514,6 +623,7 @@
                     }
                 })
                 .catch(error => {
+                    hideLoading(); // Hide loading animation on error
                     console.error("Error in handleServiceClick:", error);
                     displayMessage("Sorry, there was an error(handel)", 'bot-message');
                 });
@@ -558,11 +668,18 @@
               chatBox.style.marginRight = "10px";
           } else {
               // Convert markdown-style formatting
-              message = message
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
-                  .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')        // Headers
-                  .replace(/\n- /g, '\n• ')                          // Bullet points
-                  .replace(/\n/g, '<br>');                           // Line breaks
+                  // Markdown-style formatting
+               message = message
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+                  .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>') // Level 3 headers
+                  .replace(/^## (.*)$/gm, '<h3 class="bot-heading">$1</h3>') // Double hash for Level 2 headers
+                  .replace(/^# (.*)$/gm, '<h2 class="bot-heading">$1</h2>') // Single hash for Level 1 headers
+                  .replace(/^---$/gm, '<hr class="custom-divider">') // Triple dashes for horizontal rule
+                  .replace(/(?:^|\n)- (.*?)(\n|$)/g, '<ul class="bot-list"><li>$1</li></ul>') // Bullet points
+                  .replace(/\n/g, '<br>'); // Line breaks
+
+            // Combine adjacent lists into one
+            // message = message.replace(/<\/ul>\s*<ul class="bot-list">/g, '');
 
               messageDiv.innerHTML = message;
               chatBox.appendChild(messageDiv);
