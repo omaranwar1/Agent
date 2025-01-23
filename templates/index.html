@@ -347,7 +347,13 @@
           breadcrumbs.splice(index + 1);
           updateBreadcrumbs();
           if (index === 0) {
-              location.reload(); // Main menu
+              // Reset state before reloading
+              fetch('/reset_state', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ session_id: 'default' })
+              })
+              .then(() => location.reload());
           } else {
               handleBreadcrumbNavigation(breadcrumbs[index]);
           }
