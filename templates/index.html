@@ -546,7 +546,7 @@
             if (greeting) greeting.remove();
 
             showLoading(); // Show loading animation
-
+         
             fetch('/get_response', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -627,6 +627,7 @@
                     console.error("Error in handleServiceClick:", error);
                     displayMessage("Sorry, there was an error(handel)", 'bot-message');
                 });
+                hideLoading(); // Show loading animation
         }
 
 
