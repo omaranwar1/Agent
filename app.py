@@ -71,6 +71,12 @@ def generate_url(input_string):
         url = f"{base_url}/app/{doctype}/new-{doctype}"
     return url
 
+# For dashboards
+def generate_url_dashboards(input_string):
+        dashboard = input_string.lower().replace(" dashboards", "").replace(" ", "%")
+        dasboard_url = f"{base_url}/app/dashboard-view/{dashboard}"
+        return dasboard_url
+
 def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     if session_id not in chat_histories:
         chat_histories[session_id] = []
@@ -210,15 +216,8 @@ def chatbot_response(message, session_id, state_action=None):
         "hr": "What HR service do you need?",
         "create new": "What type of data do you want to create?",
         "show projects": "what project do you want to view?",
-        "post" : "What post do you want to use?"
+        "dashboards": "What dashboard do you want to view?"
     }
-
-    # POST TEST----------------
-    Post_list = {
-        'post employee' : '/api/resource/User'
-    }
-
-    # ------------------------
 
     # System Reports subdivisions and reports
     system_reports = {
@@ -281,10 +280,30 @@ def chatbot_response(message, session_id, state_action=None):
         "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
-   
+    system_dashboards = {
+        "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dasboard', 'CRM Dasboard', 'HR Dasboard', 'Payroll Dasboard', 'Stock Dasboard', 'Manufactring Dasboard', 'Project Dashboard']
+    }
+
+
+    # For navigation requests, set to NAVIGATION mode
+    if normalized_message in services:
+        session_states[session_id] = STATES['NAVIGATION']
+        return services[normalized_message]
+    
+    # Check if the message corresponds to a subdivision in System Reports
+    elif normalized_message in system_reports:
+        session_states[session_id] = STATES['NAVIGATION']
+        reports = system_reports[normalized_message]
+        return f"Which report do you need?\n"
+    
+    # Check if the message corresponds to a subdivision in Data Entry
+    elif normalized_message in system_data_entry:
+        session_states[session_id] = STATES['NAVIGATION']
+        new_docs = system_data_entry[normalized_message]
+        return f"Which document do you want to add?\n"
 
     # Check if it's a service API request
-    if normalized_message in service_apis:
+    elif normalized_message in service_apis:
         try:
             api_url = base_url + service_apis[normalized_message]
             response = requests.get(api_url, headers=header)
@@ -297,20 +316,8 @@ def chatbot_response(message, session_id, state_action=None):
             
         except requests.exceptions.RequestException as e:
             return f"Error retrieving data: {str(e)}"
+        
 
-    # If we're in DATA_ANALYSIS mode, stay there and process with AI
-    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
-        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
-
-    # For navigation requests, set to NAVIGATION mode
-    if normalized_message in services:
-        session_states[session_id] = STATES['NAVIGATION']
-        return services[normalized_message]
-    
-    # Check if the message corresponds to a subdivision in System Reports
-    if normalized_message in system_reports:
-        reports = system_reports[normalized_message]
-        return f"Which report do you need?\n"
 
     # Check if the message corresponds to a specific report
     for subdivision, reports in system_reports.items():
@@ -318,22 +325,29 @@ def chatbot_response(message, session_id, state_action=None):
             encoded_report_name = urllib.parse.quote(message)
             report_url = f"{base_url}/app/query-report/{encoded_report_name}"
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
-        
 
-    # Check if the message corresponds to a subdivision in Data Entry
-    if normalized_message in system_data_entry:
-        new_docs = system_data_entry[normalized_message]
-        return f"Which document do you want to add?\n"
     
     # Check if the message corresponds to a specific document
     for subdivision, new_docs in system_data_entry.items():
         if normalized_message in [new_doc.lower() for new_doc in new_docs]:
             url = generate_url(normalized_message)
-            #webbrowser.open(url)
+            return f"iframe::{url}"  # Return a special message indicating iframe content
+        
+    for subdivision, dashs in system_dashboards.items():
+        if normalized_message in [dash.lower() for dash in dashs]:
+            url = generate_url_dashboards(normalized_message)
             return f"iframe::{url}"  # Return a special message indicating iframe content
 
+
+    # If we're in DATA_ANALYSIS mode, stay there and process with AI
+    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
+        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
+
     # Default case: process with AI in current state
-    return get_ai_response(message, session_id)
+    return get_ai_response(message, session_id, 'NAVIGATION')
+
+
+
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -389,4 +403,3 @@ def reset_state():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
