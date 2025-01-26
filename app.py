@@ -15,6 +15,10 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 #####################
 app = Flask(__name__)
 
+# Set secret key directly in the code
+app.secret_key = 'v8ITMD1vqg0Oixjp6UPi153tqeRqfn/v'  # Your generated key
+
+
 # Azure OpenAI Configuration
 endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.openai.azure.com/")
 deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")
@@ -276,7 +280,7 @@ def chatbot_response(message, session_id, state_action=None):
         # Projects
         "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
         "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
-        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=200",
+        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&order_by=time desc",
         "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
