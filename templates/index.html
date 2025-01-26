@@ -418,12 +418,12 @@
         .message:last-child,
         #service-buttons,
         .sub-service-buttons {
-            margin-bottom: 50px;  /* Increased margin */
+            margin-bottom: 80px;  /* Increased margin */
         }
 
         /* Ensure buttons in the greeting are fully visible */
         #greeting {
-            padding-bottom: 50px;  /* Added padding for greeting section */
+            padding-bottom: 80px;  /* Added padding for greeting section */
         }
 
         .input-container {
@@ -636,6 +636,7 @@
                         <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
                         <button onclick="handleServiceClick('System Reports')">System Reports</button>
                         <button onclick="handleServiceClick('Create New')">Create New</button>
+                        <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
                     </div>
                 </div>
             </div>
@@ -875,8 +876,9 @@
                         displaySubServiceOptions(["New BOM", "New Work Order", "New Job Card"]);
                     } else if (serviceName === "Other") {
                         displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
+                    } else if (serviceName === "Dashboards") {
+                        displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resources Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufactring Dashboard', 'Project Dashboard']);
                     }
-
                     hideLoading(); // Moved here to ensure it's called after all processing is complete
                 })
                 .catch(error => {
@@ -990,6 +992,7 @@
                       <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
                       <button onclick="handleServiceClick('System Reports')">System Reports</button>
                       <button onclick="handleServiceClick('Create New')">Create New</button>
+                      <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
                   </div>
               `;
               chatBox.appendChild(greeting);
