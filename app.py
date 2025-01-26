@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import requests
 import json
 import webbrowser
@@ -7,6 +7,8 @@ import os
 import base64
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from functools import wraps
+from datetime import datetime, timedelta
 
 #####################
 # Backend API details for additional data fetching
@@ -15,9 +17,16 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 #####################
 app = Flask(__name__)
 
-# Set secret key directly in the code
-app.secret_key = 'v8ITMD1vqg0Oixjp6UPi153tqeRqfn/v'  # Your generated key
+# Add a secret key for session management
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key-here")  # In production, use a proper secret key
 
+# Add session configuration
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),  # Session lasts 24 hours
+)
 
 # Azure OpenAI Configuration
 endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.openai.azure.com/")
@@ -65,20 +74,20 @@ user_credentials = {
 def generate_url(input_string):
     # Check if the input matches specific cases
     if input_string == "New Employee Attendance Tool":
-        url = f"{base_url}/app/employee-attendance-tool"
+        url = f"{session['base_url']}/app/employee-attendance-tool"
     elif input_string == "New Upload Attendance":
-        url = f"{base_url}/app/upload-attendance"
+        url = f"{session['base_url']}/app/upload-attendance"
     else:
         # Replace spaces with hyphens to form the URL
         doctype = input_string.lower().replace("new ", "").replace(" ", "-")
         # Construct the URL dynamically
-        url = f"{base_url}/app/{doctype}/new-{doctype}"
+        url = f"{session['base_url']}/app/{doctype}/new-{doctype}"
     return url
 
 # For dashboards
 def generate_url_dashboards(input_string):
         dashboard = input_string.lower().replace(" dashboards", "").replace(" ", "%")
-        dasboard_url = f"{base_url}/app/dashboard-view/{dashboard}"
+        dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
         return dasboard_url
 
 def get_ai_response(user_message, session_id, state_action=None, api_data=None):
@@ -309,8 +318,8 @@ def chatbot_response(message, session_id, state_action=None):
     # Check if it's a service API request
     elif normalized_message in service_apis:
         try:
-            api_url = base_url + service_apis[normalized_message]
-            response = requests.get(api_url, headers=header)
+            api_url = session['base_url'] + service_apis[normalized_message]
+            response = requests.get(api_url, headers=session['header'])
             response.raise_for_status()
             data = response.json()
             
@@ -327,7 +336,7 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, reports in system_reports.items():
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
-            report_url = f"{base_url}/app/query-report/{encoded_report_name}"
+            report_url = f"{session['base_url']}/app/query-report/{encoded_report_name}"
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
 
     
@@ -359,30 +368,73 @@ def login():
 
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
-    username = request.json.get("username")
-    password = request.json.get("password")
-    
-    if username in user_credentials and user_credentials[username]["password"] == password:
-        # Set the base_url and header for the authenticated user
-        global base_url, header
-        base_url = user_credentials[username]["base_url"]
-        header = user_credentials[username]["header"]
-        return jsonify({"success": True, "redirect": url_for('chatbot')})
-    
-    return jsonify({"success": False, "message": "Invalid credentials"}), 401
+    try:
+        username = request.json.get("username")
+        password = request.json.get("password")
+        
+        if username in user_credentials and user_credentials[username]["password"] == password:
+            # Make session permanent
+            session.permanent = True
+            
+            # Store the base_url and header in the session
+            session['base_url'] = user_credentials[username]["base_url"]
+            session['header'] = user_credentials[username]["header"]
+            session['username'] = username
+            
+            # Ensure session is saved
+            session.modified = True
+            
+            return jsonify({"success": True, "redirect": url_for('chatbot')})
+        
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+    except Exception as e:
+        print(f"Authentication error: {str(e)}")  # For debugging
+        return jsonify({"success": False, "message": "Authentication error"}), 500
 
 @app.route("/")
 def home():
     return redirect(url_for('login'))
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            if 'base_url' not in session or 'header' not in session:
+                print("Session missing required data")  # For debugging
+                return redirect(url_for('login'))
+            # Verify session data is valid
+            if not isinstance(session.get('base_url'), str) or not isinstance(session.get('header'), dict):
+                print("Invalid session data format")  # For debugging
+                session.clear()
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            print(f"Login verification error: {str(e)}")  # For debugging
+            session.clear()
+            return redirect(url_for('login'))
+    return decorated_function
+
+@app.before_request
+def before_request():
+    # Check if we have a valid session
+    if 'username' in session:
+        # Refresh session data if needed
+        username = session['username']
+        if username in user_credentials:
+            session['base_url'] = user_credentials[username]["base_url"]
+            session['header'] = user_credentials[username]["header"]
+            session.modified = True
+
 @app.route("/chatbot")
+@login_required
 def chatbot():
     return render_template("index.html")
 
 @app.route("/get_response", methods=["POST"])
+@login_required
 def get_response():
     user_message = request.json.get("message")
-    session_id = request.json.get("session_id", "default")  # Get or create session ID
+    session_id = request.json.get("session_id", "default")
     response = chatbot_response(user_message,session_id)
     return jsonify({"response": response})
 
@@ -404,6 +456,11 @@ def reset_state():
         session_states[session_id] = STATES['NAVIGATION']
     return jsonify({"status": "success", "message": "State reset to navigation"})
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
     app.run(debug=True)
+
