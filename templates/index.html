@@ -521,17 +521,17 @@
             })
             .then(response => response.json())
             .then(data => {
-                hideLoading(); // Hide loading animation
                 const responseMessage = data.response;
                 // Handle iframe or normal responses
                 if (!handleIframeResponse(responseMessage)) {
                     displayMessage(responseMessage, 'bot-message');
                 }
+                hideLoading(); // Moved here to ensure it's called after displaying the message
             })
             .catch(error => {
-                hideLoading(); // Hide loading animation on error
                 console.error("Error:", error);
                 displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
+                hideLoading(); // Also ensure it's called on error
             });
         }
 
@@ -621,11 +621,13 @@
                     } else if (serviceName === "Other") {
                         displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
                     }
+
+                    hideLoading(); // Moved here to ensure it's called after all processing is complete
                 })
                 .catch(error => {
-                    hideLoading(); // Hide loading animation on error
                     console.error("Error in handleServiceClick:", error);
                     displayMessage("Sorry, there was an error(handel)", 'bot-message');
+                    hideLoading();
                 });
         }
 
