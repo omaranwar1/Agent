@@ -374,95 +374,127 @@
 
     /* Add these media queries at the end of your style section */
     @media screen and (max-width: 768px) {
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
         #container {
-            width: 95%;
+            width: 100%;
             height: 100vh;
             position: fixed;
             top: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
+            overflow: hidden;
         }
 
-        #chat-container {
-            width: 100%;
-            height: 100%;
-            padding: 5px;
-            padding-top: 85px;  /* Space for buttons at top */
-            position: relative;  /* Add this */
-        }
-
-        #chat-box {
-            flex: 1;
-            padding: 10px;
-            height: calc(100vh - 200px);
-            overflow-y: auto;
-            margin-bottom: 10px;
-            position: relative;  /* Add this */
-        }
-
-        .input-container {
-            padding: 5px;
-            background-color: #fff;
+        /* Fixed header area */
+        .header-area {
             position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 95%;
-            height: 50px;
-            display: flex;
-            align-items: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 85px;  /* Height for header area */
+            background-color: #fff;
             z-index: 1000;
         }
 
-        /* Fix header elements to stay in place */
         #breadcrumbs {
-            position: fixed;  /* Change to fixed */
+            position: absolute;
             top: 10px;
             left: 10px;
-            margin-top: 0;
             width: calc(100% - 125px);
             font-size: 12px;
-            z-index: 1000;  /* Add this */
         }
 
         .logout-container {
-            position: fixed;  /* Change to fixed */
+            position: absolute;
             top: 10px;
             right: 10px;
-            z-index: 1000;  /* Add this */
         }
 
         .clear-history-container {
-            position: fixed;  /* Change to fixed */
+            position: absolute;
             top: 45px;
             right: 10px;
-            z-index: 1000;  /* Add this */
+        }
+
+        /* Scrollable chat area */
+        #chat-container {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 85px;  /* Start below header */
+            bottom: 60px;  /* Space for input container */
+            left: 0;
+            right: 0;
+            overflow: hidden;
+        }
+
+        #chat-box {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Fixed footer/input area */
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            padding: 8px 5px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
         }
 
         /* Input elements */
         #user-input {
             width: 75%;
-            height: 35px;
+            height: 40px;
             padding: 5px 10px;
+            margin: 0;
         }
 
         #send-button {
             width: 20%;
-            height: 35px;
+            height: 40px;
             padding: 5px;
+            margin: 0;
         }
 
         /* Message styling */
         .message {
             max-width: 90%;
             padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+
+        /* Add background to fixed elements */
+        .header-area, .input-container {
+            background-color: #fff;
+        }
+    }
+
+    /* iOS specific adjustments */
+    @supports (-webkit-touch-callout: none) {
+        #chat-box {
+            -webkit-overflow-scrolling: touch;
         }
     }
 
     /* Additional adjustments for very small screens */
     @media screen and (max-height: 600px) {
         #chat-box {
-            height: calc(100vh - 180px);
+            padding-bottom: 50px;
         }
 
         .input-container {
