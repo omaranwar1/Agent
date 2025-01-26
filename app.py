@@ -188,9 +188,9 @@ Remember:
 
 
 # Chatbot logic
-def chatbot_response(message,session_id,state_action=None):
+def chatbot_response(message, session_id, state_action=None):
     # Check if returning to main menu (including page reload)
-    if message.lower() in ["main menu", "page_reload"]:  # Added page_reload variant
+    if message.lower() in ["main menu", "page_reload"]:
         session_states[session_id] = STATES['NAVIGATION']
         return get_ai_response("What can I help you with?", session_id, 'NAVIGATION')
     
@@ -210,7 +210,7 @@ def chatbot_response(message,session_id,state_action=None):
         "hr": "What HR service do you need?",
         "create new": "What type of data do you want to create?",
         "show projects": "what project do you want to view?",
-        "post" : "What post do you want to use?" # POST TEST----------------
+        "post" : "What post do you want to use?"
     }
 
     # POST TEST----------------
@@ -283,28 +283,30 @@ def chatbot_response(message,session_id,state_action=None):
 
    
 
-    # Check if the message corresponds to a main service
-    # If clicking a main service button, reset to navigation state
+    # Check if it's a service API request
+    if normalized_message in service_apis:
+        try:
+            api_url = base_url + service_apis[normalized_message]
+            response = requests.get(api_url, headers=header)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Set state to DATA_ANALYSIS and keep it there
+            session_states[session_id] = STATES['DATA_ANALYSIS']
+            return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
+            
+        except requests.exceptions.RequestException as e:
+            return f"Error retrieving data: {str(e)}"
+
+    # If we're in DATA_ANALYSIS mode, stay there and process with AI
+    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
+        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
+
+    # For navigation requests, set to NAVIGATION mode
     if normalized_message in services:
         session_states[session_id] = STATES['NAVIGATION']
         return services[normalized_message]
     
-    # If already in DATA_ANALYSIS state, maintain it
-    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
-        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
-    
-    # Check if it's a service API request
-    if normalized_message in service_apis:
-        state_action = 'DATA_ANALYSIS'  # Set state for data viewing
-        api_url = base_url + service_apis[normalized_message]
-        try:
-            response = requests.get(api_url, headers=header)
-            response.raise_for_status()
-            data = response.json()
-            return get_ai_response(message, session_id, state_action, data)
-        except requests.exceptions.RequestException as e:
-            return f"Error retrieving data: {str(e)}"
-
     # Check if the message corresponds to a subdivision in System Reports
     if normalized_message in system_reports:
         reports = system_reports[normalized_message]
@@ -331,24 +333,7 @@ def chatbot_response(message,session_id,state_action=None):
             #webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
 
-
-    # Check if the message corresponds to a sub-service
-    if normalized_message in service_apis:
-        # Make the API call
-        api_url = base_url + service_apis[normalized_message]
-        # print(api_url)
-        try:
-            response = requests.get(api_url, headers=header)
-            response.raise_for_status()  # Raise an error for bad responses
-            data = response.json()
-            return get_ai_response(message, session_id, data)
-        except requests.exceptions.RequestException as e:
-            if str(e).startswith("403 Client Error: FORBIDDEN "):
-                return "You are not allowed to view this information"
-            else:
-                return f"Error retrieving data: {str(e)}"
-
-    # Instead of returning the default message, pass unrecognized input to the AI
+    # Default case: process with AI in current state
     return get_ai_response(message, session_id)
 
 @app.route("/login", methods=["GET"])
@@ -389,13 +374,15 @@ def clear_history():
     session_id = request.json.get("session_id", "default")
     if session_id in chat_histories:
         chat_histories[session_id] = []
+    # Reset state to NAVIGATION when clearing history
     if session_id in session_states:
-        session_states[session_id] = STATES['NAVIGATION']  # Reset state to navigation
+        session_states[session_id] = STATES['NAVIGATION']
     return jsonify({"status": "success", "message": "Chat history cleared"})
 
 @app.route("/reset_state", methods=["POST"])
 def reset_state():
     session_id = request.json.get("session_id", "default")
+    # Reset to NAVIGATION mode
     if session_id in session_states:
         session_states[session_id] = STATES['NAVIGATION']
     return jsonify({"status": "success", "message": "State reset to navigation"})
