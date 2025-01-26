@@ -554,6 +554,7 @@
                         <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
                         <button onclick="handleServiceClick('System Reports')">System Reports</button>
                         <button onclick="handleServiceClick('Create New')">Create New</button>
+                        <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
                     </div>
                 </div>
             </div>
@@ -793,10 +794,10 @@
                         displaySubServiceOptions(["New BOM", "New Work Order", "New Job Card"]);
                     } else if (serviceName === "Other") {
                         displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
-                    }
-
+                    } else if (serviceName === "Dashboards") {
+                        displaySubServiceOptions(['Accounts Dashboards', 'Purchasing Dashboards', 'Selling Dashboards', 'CRM Dashboards', 'Human Resources Dashboards', 'Payroll Dashboards', 'Stock Dashboards', 'Manufactring Dashboards', 'Project Dashboards']);
                     hideLoading(); // Moved here to ensure it's called after all processing is complete
-                })
+                    }})
                 .catch(error => {
                     console.error("Error in handleServiceClick:", error);
                     displayMessage("Sorry, there was an error(handel)", 'bot-message');
@@ -908,6 +909,7 @@
                       <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
                       <button onclick="handleServiceClick('System Reports')">System Reports</button>
                       <button onclick="handleServiceClick('Create New')">Create New</button>
+                      <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
                   </div>
               `;
               chatBox.appendChild(greeting);

@@ -70,6 +70,11 @@ def generate_url(input_string):
         # Construct the URL dynamically
         url = f"{base_url}/app/{doctype}/new-{doctype}"
     return url
+# For dashboards
+def generate_url_dashboards(input_string):
+        dashboard = input_string.lower().replace(" dashboards", "").replace(" ", "%")
+        dasboard_url = f"{base_url}/app/dashboard-view/{dashboard}"
+        return dasboard_url
 
 def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     if session_id not in chat_histories:
@@ -210,7 +215,8 @@ def chatbot_response(message, session_id, state_action=None):
         "hr": "What HR service do you need?",
         "create new": "What type of data do you want to create?",
         "show projects": "what project do you want to view?",
-        "post" : "What post do you want to use?"
+        "post" : "What post do you want to use?",
+        "dashobords" : "What dashboard do you want to view?"
     }
 
     # POST TEST----------------
@@ -239,6 +245,10 @@ def chatbot_response(message, session_id, state_action=None):
         "new stock": [ "New Stock Entry", "New Stock Reconciliation"],
         "new manufacturing": ["New BOM", "New Work Order", "New Job Card"],
         "other": ["New Prospect",  "New Maintenance Schedule" ]
+    }
+    # System Dashboards subdivisions and documents
+    system_dashboards = {
+        "Dashboards": ['Accounts Dashboards', 'Purchasing Dashboards', 'Selling Dasboards', 'CRM Dasboards', 'HR Dasboards', 'Payroll Dasboards', 'Stock Dasboards', 'Manufactring Dasboards', 'Project Dashboards']
     }
 
     # Sub-services APIs
@@ -330,7 +340,16 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, new_docs in system_data_entry.items():
         if normalized_message in [new_doc.lower() for new_doc in new_docs]:
             url = generate_url(normalized_message)
-            #webbrowser.open(url)
+            return f"iframe::{url}"  # Return a special message indicating iframe content
+     #Check if the message corresponds to a subdivision in Dashboards
+
+    if normalized_message in [dash.lower() for dash in system_dashboards['Dashboards']]:
+        url = generate_url_dashboards(normalized_message)
+        return f"iframe::{url}"
+    # Check if the message corresponds to a specific document
+    for subdivision, dashs in system_data_entry.items():
+        if normalized_message in [new_doc.lower() for new_doc in new_docs]:
+            url = generate_url(normalized_message)
             return f"iframe::{url}"  # Return a special message indicating iframe content
 
     # Default case: process with AI in current state
