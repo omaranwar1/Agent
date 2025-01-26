@@ -316,8 +316,7 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, reports in system_reports.items():
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
-            report_url = f"https://system.edenmea.com/app/query-report/{encoded_report_name}"
-            #report_url = "https://en.wikipedia.org/wiki/Main_Page"
+            report_url = f"{base_url}/app/query-report/{encoded_report_name}"
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
         
 
@@ -390,3 +389,4 @@ def reset_state():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
