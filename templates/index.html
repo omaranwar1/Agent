@@ -390,103 +390,115 @@
             overflow: hidden;
         }
 
-        /* Fixed header area */
-        .header-area {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 85px;  /* Height for header area */
-            background-color: #fff;
-            z-index: 1000;
-        }
-
-        #breadcrumbs {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: calc(100% - 125px);
-            font-size: 12px;
-        }
-
-        .logout-container {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-
-        .clear-history-container {
-            position: absolute;
-            top: 45px;
-            right: 10px;
-        }
-
-        /* Scrollable chat area */
         #chat-container {
             width: 100%;
             height: 100%;
-            position: fixed;
-            top: 85px;  /* Start below header */
-            bottom: 60px;  /* Space for input container */
-            left: 0;
-            right: 0;
-            overflow: hidden;
+            padding: 5px;
+            padding-top: 85px;  /* Space for buttons at top */
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         #chat-box {
-            width: 100%;
-            height: 100%;
+            flex: 1;
             padding: 10px;
-            overflow-y: scroll;
+            padding-bottom: 100px;  /* Significantly increased padding */
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            position: absolute;
+            top: 85px;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            margin-bottom: 0;
         }
 
-        /* Fixed footer/input area */
+        /* Ensure last message and buttons have enough space */
+        .message:last-child,
+        #service-buttons,
+        .sub-service-buttons {
+            margin-bottom: 20px;  /* Increased margin */
+        }
+
+        /* Ensure buttons in the greeting are fully visible */
+        #greeting {
+            padding-bottom: 40px;  /* Added padding for greeting section */
+        }
+
         .input-container {
+            padding: 8px 8px;  /* Reduced padding */
+            background-color: #fff;
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
+            width: 100%;
             height: 60px;
-            padding: 8px 5px;
-            background-color: #fff;
             display: flex;
             align-items: center;
             z-index: 1000;
             box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;  /* Added to include padding in width calculation */
+        }
+
+        /* Header elements */
+        #breadcrumbs {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            margin-top: 0;
+            width: calc(100% - 125px);
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .logout-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        .clear-history-container {
+            position: fixed;
+            top: 45px;
+            right: 10px;
+            z-index: 1000;
         }
 
         /* Input elements */
         #user-input {
-            width: 75%;
-            height: 40px;
+            width: 75%;  /* Reduced width */
+            height: 35px;
             padding: 5px 10px;
-            margin: 0;
+            margin-right: 5px;  /* Reduced margin */
         }
 
         #send-button {
-            width: 20%;
-            height: 40px;
+            width: 23%;  /* Increased width */
+            height: 35px;
             padding: 5px;
-            margin: 0;
+            min-width: unset;  /* Removed minimum width constraint */
         }
 
         /* Message styling */
         .message {
             max-width: 90%;
             padding: 8px 10px;
-            margin-bottom: 8px;
+            margin-bottom: 8px;  /* Increased margin between messages */
         }
 
-        /* Add background to fixed elements */
-        .header-area, .input-container {
-            background-color: #fff;
+        /* Ensure last message has enough space */
+        .message:last-child {
+            margin-bottom: 60px;  /* Match input container height */
         }
     }
 
-    /* iOS specific adjustments */
+    /* Additional adjustments for iOS */
     @supports (-webkit-touch-callout: none) {
         #chat-box {
+            /* iOS-specific scrolling fixes */
             -webkit-overflow-scrolling: touch;
         }
     }
@@ -964,6 +976,23 @@
       function handleLogout() {
           window.location.href = '/login';
       }
+
+      // Fix for mobile viewport height
+      function setVH() {
+          let vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+      }
+
+      window.addEventListener('load', setVH);
+      window.addEventListener('resize', setVH);
+
+      // Improve mobile keyboard handling
+      document.getElementById('user-input').addEventListener('focus', function() {
+          setTimeout(function() {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+          }, 100);
+      });
     </script>
 </body>
 </html>
