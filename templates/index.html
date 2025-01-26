@@ -388,22 +388,22 @@
             height: 100%;
             padding: 5px;
             padding-top: 85px;  /* Space for buttons at top */
-            display: flex;
-            flex-direction: column;
+            position: relative;  /* Add this */
         }
 
         #chat-box {
             flex: 1;
             padding: 10px;
-            height: calc(100vh - 200px);  /* Adjust this value to leave space for input */
+            height: calc(100vh - 200px);
             overflow-y: auto;
             margin-bottom: 10px;
+            position: relative;  /* Add this */
         }
 
         .input-container {
             padding: 5px;
             background-color: #fff;
-            position: fixed;  /* Fix to bottom */
+            position: fixed;
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
@@ -414,24 +414,29 @@
             z-index: 1000;
         }
 
-        /* Adjust buttons and breadcrumbs */
+        /* Fix header elements to stay in place */
         #breadcrumbs {
-            position: absolute;
+            position: fixed;  /* Change to fixed */
             top: 10px;
             left: 10px;
             margin-top: 0;
             width: calc(100% - 125px);
             font-size: 12px;
+            z-index: 1000;  /* Add this */
         }
 
         .logout-container {
+            position: fixed;  /* Change to fixed */
             top: 10px;
             right: 10px;
+            z-index: 1000;  /* Add this */
         }
 
         .clear-history-container {
+            position: fixed;  /* Change to fixed */
             top: 45px;
             right: 10px;
+            z-index: 1000;  /* Add this */
         }
 
         /* Input elements */
