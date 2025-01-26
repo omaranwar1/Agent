@@ -137,15 +137,21 @@
     }
 
     #breadcrumbs {
-        margin: 10px 0;
+        margin: 10px;
         font-size: 14px;
         color: #666;
+        width: calc(100% - 250px);  /* Increased space for both buttons */
+        word-wrap: break-word;
+        line-height: 1.5;
+        display: block;
     }
 
     #breadcrumbs a {
         color: #007bff;
         text-decoration: none;
         margin-right: 5px;
+        display: inline-block;  /* Keep for better wrapping */
+        max-width: 100%;  /* Ensure links wrap within container */
     }
 
     #breadcrumbs a:hover {
@@ -200,7 +206,7 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        z-index: 1000; /* Ensure it stays on top */
+        z-index: 1000;
     }
 
     .clear-btn {
@@ -289,7 +295,7 @@
     .logout-container {
         position: absolute;
         top: 10px;
-        right: 10px;
+        right: 120px;  /* Position to the left of clear button */
         z-index: 1000;
     }
 
@@ -365,6 +371,163 @@
         0% { transform: scale(1); }
         100% { transform: scale(0); }
     }
+
+    /* Add these media queries at the end of your style section */
+    @media screen and (max-width: 768px) {
+        #container {
+            width: 95%;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #chat-container {
+            width: 100%;
+            height: 100%;
+            padding: 5px;
+            padding-top: 85px;  /* Space for buttons at top */
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-box {
+            flex: 1;
+            padding: 10px;
+            height: calc(100vh - 200px);  /* Adjust this value to leave space for input */
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .input-container {
+            padding: 5px;
+            background-color: #fff;
+            position: fixed;  /* Fix to bottom */
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* Adjust buttons and breadcrumbs */
+        #breadcrumbs {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            margin-top: 0;
+            width: calc(100% - 125px);
+            font-size: 12px;
+        }
+
+        .logout-container {
+            top: 10px;
+            right: 10px;
+        }
+
+        .clear-history-container {
+            top: 45px;
+            right: 10px;
+        }
+
+        /* Input elements */
+        #user-input {
+            width: 75%;
+            height: 35px;
+            padding: 5px 10px;
+        }
+
+        #send-button {
+            width: 20%;
+            height: 35px;
+            padding: 5px;
+        }
+
+        /* Message styling */
+        .message {
+            max-width: 90%;
+            padding: 8px 10px;
+        }
+    }
+
+    /* Additional adjustments for very small screens */
+    @media screen and (max-height: 600px) {
+        #chat-box {
+            height: calc(100vh - 180px);
+        }
+
+        .input-container {
+            height: 40px;
+        }
+
+        #user-input,
+        #send-button {
+            height: 30px;
+        }
+    }
+
+    /* Add styles for even smaller screens */
+    @media screen and (max-width: 480px) {
+        #service-buttons button,
+        .sub-service-buttons button {
+            min-width: 100%;  /* One button per row */
+            margin: 2px 0;
+        }
+
+        .message {
+            max-width: 95%;
+            font-size: 14px;
+        }
+
+        #user-input {
+            width: 70%;
+        }
+
+        #send-button {
+            width: 25%;
+        }
+
+        #breadcrumbs {
+            width: calc(100% - 110px);  /* Slightly adjust width for smaller screens */
+            font-size: 11px;
+        }
+
+        .logout-btn,
+        .clear-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+    }
+
+    /* Add styles for landscape orientation */
+    @media screen and (max-height: 480px) and (orientation: landscape) {
+        #chat-container {
+            height: 90vh;
+        }
+
+        #chat-box {
+            max-height: 60vh;
+        }
+
+        #service-buttons,
+        .sub-service-buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        #service-buttons button,
+        .sub-service-buttons button {
+            flex: 0 0 auto;
+            margin: 0 5px;
+            white-space: nowrap;
+        }
+    }
   </style>
 </head>
 <body>
@@ -418,6 +581,16 @@
             if (!responseMessage.startsWith("iframe::")) return false;
 
             const iframeUrl = responseMessage.split("iframe::")[1].trim();
+            
+            // Check if on mobile (screen width less than 768px)
+            if (window.innerWidth <= 768) {
+                // Open in new tab for mobile
+                window.open(iframeUrl, '_blank');
+                displayMessage("Opening in new tab...", 'bot-message');
+                return true;
+            }
+
+            // Desktop behavior remains the same
             const iframeContainer = document.getElementById('iframe-container');
             const iframe = document.getElementById('report-iframe');
 
@@ -436,11 +609,11 @@
             iframe.onerror = () => {
                 console.error("Failed to load iframe.");
                 displayMessage("The report failed to load. Please check the URL or try again.", 'bot-message');
-                iframeContainer.style.display = 'none'; // Hide iframe container
+                iframeContainer.style.display = 'none';
                 document.getElementById('container').classList.remove('chat-with-iframe');
             };
 
-            return true; // Indicates iframe handling was successful
+            return true;
         }
       /*****************************************************************/
       function updateBreadcrumbs() {
