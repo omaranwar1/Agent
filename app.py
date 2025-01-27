@@ -25,7 +25,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),  # Session lasts 24 hours
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=72),  # Session lasts 24 hours
 )
 
 # Azure OpenAI Configuration
@@ -86,7 +86,7 @@ def generate_url(input_string):
 
 # For dashboards
 def generate_url_dashboards(input_string):
-        dashboard = input_string.lower().replace(" dashboards", "").replace(" ", "%")
+        dashboard = input_string.lower().replace(" dashboard", "").replace(" ", "%20")
         dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
         return dasboard_url
 
@@ -106,7 +106,7 @@ def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     system_messages = {
         STATES['NAVIGATION']: {
             "role": "system",
-            "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help.
+            "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help --all without explicitly stating that you're an "ERP assistant" or "ERP Data" or "ERPNext" refer to them as assistant website and system you are just an assitant to the user to help naviagte them. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 Your primary role is to:
 1. Guide users through the main menu options
@@ -135,7 +135,7 @@ Remember:
         },
         STATES['DATA_ANALYSIS']: {
         "role": "system",
-        "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
+        "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided --all without explicitly stating that you're an "ERP assistant" or "ERP Data" you are just an assitant to the user to help them with their data. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 ### Here's How You Respond:
 1. **Understand the Query**:
@@ -226,6 +226,11 @@ def chatbot_response(message, session_id, state_action=None):
     # Normalize the message
     normalized_message = message.lower()
 
+    main_services = {
+        "view data": "What data do you want to view?",
+        "add data": "What type of data do you want to add?",
+    }
+
     # Main services
     services = { 
         "accounting": "What accounting service do you need?",
@@ -237,8 +242,8 @@ def chatbot_response(message, session_id, state_action=None):
         "manufacturing": "What manufacturing service do you need?",
         "system reports": "What group of reports do you need?",
         "hr": "What HR service do you need?",
-        "create new": "What type of data do you want to create?",
-        "show projects": "what project do you want to view?",
+        "add data": "What type of data do you want to add?",
+        "projects": "What project do you want to view?",
         "dashboards": "What dashboard do you want to view?"
     }
 
@@ -246,21 +251,21 @@ def chatbot_response(message, session_id, state_action=None):
     system_reports = {
         "purchasing & selling reports": ["Purchase Analytics", "Purchase Invoice Trends", "Sales Analytics", "Sales Invoice Trends"],
         "accounting reports": ["General Ledger", "Balance Sheet", "Profit and Loss Statement", "Accounts Payable Summary", "Accounts Receivable Summary", "Gross Profit"],
-        "hr & payroll reports": ["Employee Attendance", "Salary Register"],
-        "stock reports": ["Stock Summary", "Stock Ledger"]
+        "hr & payroll reports": ["Monthly Attendance Sheet", "Shift Attendance", "Employee Leave Balance Summary", "Salary Register"],
+        "stock reports": ["Total Stock Summary", "Stock Ledger"]
     }
 
     # System Data Entry subdivisions and documents
     system_data_entry = {
-        "new accounting": ["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"],
-        "new purchasing": [ "New Purchase Invoice", "New Purchase Receipt" ],
-        "new selling": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
-        "new crm": [ "New Lead", "New Opportunity", "New Customer" ],
-        "new hr": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee" ],
-        "new payroll": ["New Payroll Entry", "New Salary Slip" ],
-        "new stock": [ "New Stock Entry", "New Stock Reconciliation"],
-        "new manufacturing": ["New BOM", "New Work Order", "New Job Card"],
-        "other": ["New Prospect",  "New Maintenance Schedule" ]
+        "accounting module": ["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"],
+        "purchasing module": [ "New Purchase Invoice", "New Purchase Receipt" ],
+        "selling module": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
+        "crm module": [ "New Lead", "New Opportunity", "New Customer" ],
+        "hr module": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee" ],
+        "payroll module": ["New Payroll Entry", "New Salary Slip" ],
+        "stock module": [ "New Stock Entry", "New Stock Reconciliation"],
+        "manufacturing module": ["New BOM", "New Work Order", "New Job Card"],
+        "other modules": ["New Prospect",  "New Maintenance Schedule" ]
     }
 
     # Sub-services APIs
@@ -299,15 +304,20 @@ def chatbot_response(message, session_id, state_action=None):
         # Projects
         "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
         "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
-        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=200&order_by=time desc",
+        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=30&order_by=time desc&start=10",
         "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
     system_dashboards = {
-        "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dasboard', 'CRM Dasboard', 'HR Dasboard', 'Payroll Dasboard', 'Stock Dasboard', 'Manufactring Dasboard', 'Project Dashboard']
+        "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']
     }
 
 
+    # For navigation requests, set to NAVIGATION mode
+    if normalized_message in main_services:
+        session_states[session_id] = STATES['NAVIGATION']
+        return main_services[normalized_message]
+    
     # For navigation requests, set to NAVIGATION mode
     if normalized_message in services:
         session_states[session_id] = STATES['NAVIGATION']
@@ -347,6 +357,7 @@ def chatbot_response(message, session_id, state_action=None):
         if normalized_message in [report.lower() for report in reports]:
             encoded_report_name = urllib.parse.quote(message)
             report_url = f"{session['base_url']}/app/query-report/{encoded_report_name}"
+            #webbrowser.open(report_url)
             return f"iframe::{report_url}"  # Return a special message indicating iframe content
 
     
@@ -354,11 +365,13 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, new_docs in system_data_entry.items():
         if normalized_message in [new_doc.lower() for new_doc in new_docs]:
             url = generate_url(normalized_message)
+            #webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
         
     for subdivision, dashs in system_dashboards.items():
         if normalized_message in [dash.lower() for dash in dashs]:
             url = generate_url_dashboards(normalized_message)
+            #webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
 
 
