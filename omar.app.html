@@ -1,544 +1,481 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eden Chatbot</title>
-  <style>
-    /* -- All your original styles stay here exactly as they were -- */
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+import requests
+import json
+import webbrowser
+import urllib.parse
+import os
+import base64
+from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from functools import wraps
+from datetime import datetime, timedelta
 
-    body {
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f7f7f7;
-      position: relative;
+#####################
+# Backend API details for additional data fetching
+# base_url = "https://system.edenmea.com"
+# header = {"Authorization": "token 92420cab12d4143:54f1bb6f943e856"}
+#####################
+app = Flask(__name__)
+
+# Add a secret key for session management
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key-here")  # In production, use a proper secret key
+
+# Add session configuration
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(seconds=60),  # Session lasts 24 hours
+)
+
+# Azure OpenAI Configuration
+endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.openai.azure.com/")
+deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")
+subscription_key = os.getenv("AZURE_OPENAI_API_KEY", "22jtOiYXuu43EctfKGvEQCKYqtS6t4EVZMjp0Hn4HErT5dmmMUFvJQQJ99BAACHYHv6XJ3w3AAAAACOGOeyL")
+
+# Initialize Azure OpenAI client with API key
+client = AzureOpenAI(
+    azure_endpoint=endpoint,
+    api_key=subscription_key,
+    api_version="2024-05-01-preview"
+)
+
+# Chat history storage
+chat_histories = {}
+
+# Add a state tracker dictionary (new)
+session_states = {}
+
+# Simplified state management (new)
+STATES = {
+    'NAVIGATION': 'navigation',  # For menu navigation and form creation
+    'DATA_ANALYSIS': 'data_analysis'  # For viewing and analyzing data
+}
+
+# User credentials and their corresponding base URLs and headers
+user_credentials = {
+    "admin": {
+        "password": "admin",
+        "base_url": "https://system.edenmea.com",
+        "header": {
+            "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
+        }
+    },
+    "peter": {
+        "password": "peter",
+        "base_url": "https://system.edenmea.com",
+        "header": {
+            "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
+        }
+    }
+}
+
+# Function to create the URL for data entry
+def generate_url(input_string):
+    # Check if the input matches specific cases
+    if input_string == "New Employee Attendance Tool":
+        url = f"{session['base_url']}/app/employee-attendance-tool"
+    elif input_string == "New Upload Attendance":
+        url = f"{session['base_url']}/app/upload-attendance"
+    else:
+        # Replace spaces with hyphens to form the URL
+        doctype = input_string.lower().replace("new ", "").replace(" ", "-")
+        # Construct the URL dynamically
+        url = f"{session['base_url']}/app/{doctype}/new-{doctype}"
+    return url
+
+# For dashboards
+def generate_url_dashboards(input_string):
+        dashboard = input_string.lower().replace(" dashboards", "").replace(" ", "%")
+        dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
+        return dasboard_url
+
+def get_ai_response(user_message, session_id, state_action=None, api_data=None):
+    if session_id not in chat_histories:
+        chat_histories[session_id] = []
+    
+    # Initialize or get session state
+    if session_id not in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    
+    # Update state based on explicit state action
+    if state_action:
+        session_states[session_id] = STATES.get(state_action, STATES['NAVIGATION'])
+
+    # Define the two system messages
+    system_messages = {
+        STATES['NAVIGATION']: {
+            "role": "system",
+            "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help.
+
+Your primary role is to:
+1. Guide users through the main menu options
+2. Help them understand what each section does
+3. Provide clear navigation instructions
+
+Main Menu Structure:
+- Accounting: Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice
+- Purchasing: Purchase Invoice, Purchase Receipt
+- Selling: Sales Invoice, Sales Order, Quotations
+- CRM: Lead, Opportunity, Customer
+- Payroll: Payroll Entry, Salary Slip
+- Stock: Stock Entry, Stock Reconciliation
+- Manufacturing: BOM, Work Order, Job Card
+- System Reports: Various report categories
+- HR: Leave Applications, Attendance Tools
+- Create New: access to create any document creating any document is done there(New Accounting, New Purchasing, New Selling, New CRM , New HR, New Payroll, New Stock, New Manufacturing, Other(New Prospect
+, New Maintenance Schedule)) all of these are buttons in Create New. Guide the user to the right button based on the user input.
+
+Remember:
+- Keep responses focused on navigation and guidance
+- Explain options clearly and concisely
+- Help users find the right tool for their needs
+- Currencies are in EGP unless stated otherwise
+- make your presentation simple and easy to read"""
+        },
+        STATES['DATA_ANALYSIS']: {
+        "role": "system",
+        "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided.
+
+### Here's How You Respond:
+1. **Understand the Query**:
+   - Identify exactly what the user wants. Do they need a summary of the data? Are they looking for trends, totals, or patterns? Focus on answering their question based only on the data provided.
+
+2. **Present Data Nicely**:
+   - If the task involves showing the data, make it easy to read. Use bullet points or short paragraphs. Highlight key details, such as totals, statuses, or other important metrics that are explicitly present in the data.
+
+3. **Verify Numbers and Facts**:
+   - Use only the numbers and information explicitly available in the JSON data provided.
+   - **Do not guess or make assumptions about missing numbers or incomplete data.**
+   - If there is insufficient data to answer the query, respond with: "The data provided is insufficient to calculate or provide a definitive answer. Could you clarify or provide additional information?"
+
+4. **Give Insights if Asked**:
+   - If the query is about "why" or "what does this mean," analyze only the data provided to identify trends or patterns. Ensure all insights are supported by explicit evidence in the data.
+
+5. **Be Conversational**:
+   - Talk to the user like you're chatting with a colleague. Be friendly but professional.
+
+6. **Handle Gaps Gracefully**:
+   - If the data or query is unclear or incomplete, ask for clarification. Never make up information to fill in the gaps.
+
+7. **Currencies Are in EGP Unless Stated Otherwise**:
+   - For all monetary data, assume the currency is EGP unless specified otherwise.
+
+8. **Prioritize Accuracy**:
+   - Always double-check your calculations. Clearly indicate the source of the numbers or trends you mention, ensuring that users understand how you derived them."""
+        }
     }
 
-    #logo {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      max-width: 100px;
-      width: auto;
-      height: auto;
-      display: block;
+    # Use the appropriate system message based on current state
+    current_state = session_states[session_id]
+    system_message = system_messages.get(current_state, system_messages[STATES['NAVIGATION']])
+
+    # Prepare messages including history
+    messages = [system_message]
+    messages.extend(chat_histories[session_id][-10:])
+    
+    # Add current user message and API data if available
+    current_message = {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": user_message}
+        ]
+    }
+    if api_data:
+        current_message["content"].append({"type": "text", "text": json.dumps(api_data)})
+    
+    messages.append(current_message)
+
+    try:
+        # Get completion from Azure OpenAI
+        completion = client.chat.completions.create(
+            model=deployment,
+            messages=messages,
+            max_tokens=800,
+            temperature=0.7,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None,
+            stream=False
+        )
+
+        # Extract the response
+        ai_response = completion.choices[0].message.content
+
+        # Store the conversation
+        chat_histories[session_id].append(current_message)
+        chat_histories[session_id].append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": ai_response}]
+        })
+
+        return ai_response
+
+    except Exception as e:
+        return f"Error getting AI response: {str(e)}"
+
+
+# Chatbot logic
+def chatbot_response(message, session_id, state_action=None):
+    # Check if returning to main menu (including page reload)
+    if message.lower() in ["main menu", "page_reload"]:
+        session_states[session_id] = STATES['NAVIGATION']
+        return get_ai_response("What can I help you with?", session_id, 'NAVIGATION')
+    
+    # Normalize the message
+    normalized_message = message.lower()
+
+    # Main services
+    services = { 
+        "accounting": "What accounting service do you need?",
+        "purchasing": "What purchasing service do you need?",
+        "selling": "What selling service do you need?",
+        "crm": "What CRM service do you need?",
+        "payroll": "What payroll service do you need?",
+        "stock": "What stock service do you need?",
+        "manufacturing": "What manufacturing service do you need?",
+        "system reports": "What group of reports do you need?",
+        "hr": "What HR service do you need?",
+        "create new": "What type of data do you want to create?",
+        "show projects": "what project do you want to view?",
+        "dashboards": "What dashboard do you want to view?"
     }
 
-    #container {
-      display: flex;
-      width: 80%;
-      height: 100vh;
-      justify-content: center;
-      transition: all 0.5s ease;
+    # System Reports subdivisions and reports
+    system_reports = {
+        "purchasing & selling reports": ["Purchase Analytics", "Purchase Invoice Trends", "Sales Analytics", "Sales Invoice Trends"],
+        "accounting reports": ["General Ledger", "Balance Sheet", "Profit and Loss Statement", "Accounts Payable Summary", "Accounts Receivable Summary", "Gross Profit"],
+        "hr & payroll reports": ["Employee Attendance", "Salary Register"],
+        "stock reports": ["Stock Summary", "Stock Ledger"]
     }
 
-    #chat-container {
-      width: 80%;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      height: 97.4%;
-      padding: 8px;
-      transition: width 0.5s ease;
-      position: relative; /* keep this */
+    # System Data Entry subdivisions and documents
+    system_data_entry = {
+        "new accounting": ["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"],
+        "new purchasing": [ "New Purchase Invoice", "New Purchase Receipt" ],
+        "new selling": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
+        "new crm": [ "New Lead", "New Opportunity", "New Customer" ],
+        "new hr": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee" ],
+        "new payroll": ["New Payroll Entry", "New Salary Slip" ],
+        "new stock": [ "New Stock Entry", "New Stock Reconciliation"],
+        "new manufacturing": ["New BOM", "New Work Order", "New Job Card"],
+        "other": ["New Prospect",  "New Maintenance Schedule" ]
     }
 
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      border-bottom: 2px solid #ccc;
-      background-color: #f9f9f9;
-      margin-bottom: 10px;
+    # Sub-services APIs
+    service_apis = {
+        # Accounting 
+        "journal entry": "/api/resource/Journal Entry?filters=[]&fields=[\"title\",\"voucher_type\",\"total_debit\",\"name\"]",
+        "payment entry": "/api/resource/Payment Entry?filters=[[\"docstatus\",\"=\",\"1\"]]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]",
+        "sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
+        "purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
+
+        # selling
+        "quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]",
+        "delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]',
+
+        # CRM
+        "lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
+        "opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
+        "customer": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]",
+
+        # HR
+        "employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]',
+
+        # Payroll
+        "payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]",
+        "salary slip": "/api/resource/Salary Slip?filters=[]&fields=[\"employee_name\", \"status\", \"employee\", \"company\", \"posting_date\", \"name\"]",
+
+        # Stock
+        "stock entry": "/api/resource/Stock Entry?filters=[]&fields=[\"stock_entry_type\", \"purpose\", \"source_address_display\", \"target_address_display\", \"name\"]",
+        "stock reconciliation": "/api/resource/Stock Reconciliation?filters=[]&fields=[\"name\", \"posting_date\", \"posting_time\"]",
+
+        # Manufacturing
+        "bom": "/api/resource/BOM?filters=[]&fields=[\"name\", \"item\", \"is_active\", \"is_default\"]",
+        "work order": "/api/resource/Work Order?filters=[]&fields=[\"production_item\", \"status\", \"name\"]",
+        "job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]",
+
+        # Projects
+        "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
+        "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
+        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=200&order_by=time desc",
+        "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
-    .message {
-      padding: 12px 16px;
-      margin: 6px 0;
-      border-radius: 10px;
-      max-width: 80%;
-      white-space: pre-wrap;
-      line-height: 1.5;
+    system_dashboards = {
+        "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dasboard', 'CRM Dasboard', 'HR Dasboard', 'Payroll Dasboard', 'Stock Dasboard', 'Manufactring Dasboard', 'Project Dashboard']
     }
 
-    .user-message {
-      background-color: #e1f5fe;
-      text-align: right;
-      margin-left: auto;
-    }
 
-    .bot-message {
-      background-color: #f1f1f1;
-      text-align: left;
-      margin-right: auto;
-    }
+    # For navigation requests, set to NAVIGATION mode
+    if normalized_message in services:
+        session_states[session_id] = STATES['NAVIGATION']
+        return services[normalized_message]
+    
+    # Check if the message corresponds to a subdivision in System Reports
+    elif normalized_message in system_reports:
+        session_states[session_id] = STATES['NAVIGATION']
+        reports = system_reports[normalized_message]
+        return f"Which report do you need?\n"
+    
+    # Check if the message corresponds to a subdivision in Data Entry
+    elif normalized_message in system_data_entry:
+        session_states[session_id] = STATES['NAVIGATION']
+        new_docs = system_data_entry[normalized_message]
+        return f"Which document do you want to add?\n"
 
-    .greeting-message {
-      color: #666;
-      font-style: italic;
-    }
+    # Check if it's a service API request
+    elif normalized_message in service_apis:
+        try:
+            api_url = session['base_url'] + service_apis[normalized_message]
+            response = requests.get(api_url, headers=session['header'])
+            response.raise_for_status()
+            data = response.json()
+            
+            # Set state to DATA_ANALYSIS and keep it there
+            session_states[session_id] = STATES['DATA_ANALYSIS']
+            return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
+            
+        except requests.exceptions.RequestException as e:
+            return f"Error retrieving data: {str(e)}"
+        
 
-    .input-container {
-      display: flex;
-      justify-content: space-between;
-      padding: 1px;
-      background-color: #fff;
-    }
 
-    #user-input {
-      width: 85%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      font-size: 14px;
-    }
+    # Check if the message corresponds to a specific report
+    for subdivision, reports in system_reports.items():
+        if normalized_message in [report.lower() for report in reports]:
+            encoded_report_name = urllib.parse.quote(message)
+            report_url = f"{session['base_url']}/app/query-report/{encoded_report_name}"
+            return f"iframe::{report_url}"  # Return a special message indicating iframe content
 
-    #send-button {
-      width: 12%;
-      padding: 10px;
-      background-color: #4797ed;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-    }
+    
+    # Check if the message corresponds to a specific document
+    for subdivision, new_docs in system_data_entry.items():
+        if normalized_message in [new_doc.lower() for new_doc in new_docs]:
+            url = generate_url(normalized_message)
+            return f"iframe::{url}"  # Return a special message indicating iframe content
+        
+    for subdivision, dashs in system_dashboards.items():
+        if normalized_message in [dash.lower() for dash in dashs]:
+            url = generate_url_dashboards(normalized_message)
+            return f"iframe::{url}"  # Return a special message indicating iframe content
 
-    #send-button:hover {
-      background-color: #0056b3;
-    }
 
-    #service-buttons,
-    .sub-service-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-    }
+    # If we're in DATA_ANALYSIS mode, stay there and process with AI
+    if session_id in session_states and session_states[session_id] == STATES['DATA_ANALYSIS']:
+        return get_ai_response(message, session_id, 'DATA_ANALYSIS')
 
-    #service-buttons button,
-    .sub-service-buttons button {
-      padding: 10px 15px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      cursor: pointer;
-      background-color: #e1f5fe;
-      transition: background-color 0.3s;
-    }
+    # Default case: process with AI in current state
+    return get_ai_response(message, session_id, 'NAVIGATION')
 
-    #service-buttons button:hover,
-    .sub-service-buttons button:hover {
-      background-color: #b3e5fc;
-    }
 
-    #breadcrumbs {
-      margin: 10px 0;
-      font-size: 14px;
-      color: #666;
-    }
 
-    #breadcrumbs a {
-      color: #007bff;
-      text-decoration: none;
-      margin-right: 5px;
-    }
 
-    #breadcrumbs a:hover {
-      text-decoration: underline;
-    }
+@app.route("/login", methods=["GET"])
+def login():
+    return render_template("login.html")
 
-    /* Original iframe container rules */
-    #iframe-container {
-      display: none; /* Hidden initially */
-      top: 0;
-      right: 0;
-      width: 100%;
-      height: 99%;
-      background-color: white;
-      border-left: 2px solid #ccc;
-    }
+@app.route("/authenticate", methods=["POST"])
+def authenticate():
+    try:
+        username = request.json.get("username")
+        password = request.json.get("password")
+        
+        if username in user_credentials and user_credentials[username]["password"] == password:
+            # Make session permanent
+            session.permanent = True
+            
+            # Store the base_url and header in the session
+            session['base_url'] = user_credentials[username]["base_url"]
+            session['header'] = user_credentials[username]["header"]
+            session['username'] = username
+            
+            # Ensure session is saved
+            session.modified = True
+            
+            return jsonify({"success": True, "redirect": url_for('chatbot')})
+        
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+    except Exception as e:
+        print(f"Authentication error: {str(e)}")  # For debugging
+        return jsonify({"success": False, "message": "Authentication error"}), 500
 
-    #iframe-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+@app.route("/")
+def home():
+    return redirect(url_for('login'))
 
-    /* Original class that tries to move the chat box left */
-    .chat-with-iframe #chat-container {
-      width: 50%;
-      margin-right: 10px;
-    }
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            if 'base_url' not in session or 'header' not in session:
+                print("Session missing required data")  # For debugging
+                return redirect(url_for('login'))
+            # Verify session data is valid
+            if not isinstance(session.get('base_url'), str) or not isinstance(session.get('header'), dict):
+                print("Invalid session data format")  # For debugging
+                session.clear()
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        except Exception as e:
+            print(f"Login verification error: {str(e)}")  # For debugging
+            session.clear()
+            return redirect(url_for('login'))
+    return decorated_function
 
-    /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-       THE IMPORTANT FIX/OVERRIDE BLOCK:
-       +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-    /* When iframe is visible, expand #container so there's room for both */
-    #container.chat-with-iframe {
-      width: 90% !important;            /* override the original 50% */
-      justify-content: space-between !important;
-      align-items: flex-start !important;
-    }
+@app.before_request
+def before_request():
+    # Check if we have a valid session
+    if 'username' in session:
+        # Refresh session data if needed
+        username = session['username']
+        if username in user_credentials:
+            session['base_url'] = user_credentials[username]["base_url"]
+            session['header'] = user_credentials[username]["header"]
+            session.modified = True
 
-    /* Force chat container to be 60% and iframe container 40% side by side */
-    #container.chat-with-iframe #chat-container {
-      width: 60% !important;
-      margin-right: 0 !important;       /* remove any leftover margins if needed */
-    }
+@app.route("/chatbot")
+@login_required
+def chatbot():
+    return render_template("index.html")
 
-    #container.chat-with-iframe #iframe-container {
-      display: block !important;        /* ensure iframe is shown */
-      position: relative !important;    /* override absolute positioning */
-      width: 40% !important;
-      height: auto !important;          /* let it size automatically */
-      margin-left: 10px !important;     /* some spacing from chat container */
-      top: auto !important;
-      right: auto !important;
-    }
+@app.route("/get_response", methods=["POST"])
+@login_required
+def get_response():
+    user_message = request.json.get("message")
+    session_id = request.json.get("session_id", "default")
+    response = chatbot_response(user_message,session_id)
+    return jsonify({"response": response})
 
-    .clear-history-container {
-      display: flex;
-      justify-content: center;
-      padding: 5px;
-    }
+@app.route("/clear_history", methods=["POST"])
+def clear_history():
+    session_id = request.json.get("session_id", "default")
+    if session_id in chat_histories:
+        chat_histories[session_id] = []
+    # Reset state to NAVIGATION when clearing history
+    if session_id in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    return jsonify({"status": "success", "message": "Chat history cleared"})
 
-    .clear-btn {
-      background-color: #ff4444;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.3s;
-    }
+@app.route("/reset_state", methods=["POST"])
+def reset_state():
+    session_id = request.json.get("session_id", "default")
+    # Reset to NAVIGATION mode
+    if session_id in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    return jsonify({"status": "success", "message": "State reset to navigation"})
 
-    .clear-btn:hover {
-      background-color: #cc0000;
-    }
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
-    /* Add these new styles for message formatting */
-    .message {
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        max-width: 80%;
-        white-space: pre-wrap;  /* Preserves formatting */
-        line-height: 1.5;
-    }
+@app.route('/check_session')
+def check_session():
+    if 'base_url' in session and 'header' in session:
+        return jsonify({'status': 'valid'}), 200
+    return jsonify({'status': 'invalid'}), 401
 
-    /* Style markdown-like elements */
-    .bot-message h3 {
-        margin: 8px 0;
-        font-size: 1.1em;
-        color: #2c3e50;
-    }
-
-    .bot-message strong,
-    .bot-message b {
-        color: #2c3e50;
-    }
-
-    .bot-message ul,
-    .bot-message ol {
-        margin: 8px 0;
-        padding-left: 20px;
-    }
-
-    .bot-message li {
-        margin: 4px 0;
-    }
-
-    /* Style for bullet points and lists */
-    .bot-message ul {
-        list-style-type: disc;
-    }
-
-    /* Style for horizontal rules */
-    .bot-message hr {
-        border: 0;
-        border-top: 1px solid #eee;
-        margin: 10px 0;
-    }
-  </style>
-</head>
-<body>
-    <img id="logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo">
-    <div id="container">
-        <div id="chat-container">
-            <div id="breadcrumbs"></div>
-            <div id="chat-box">
-                <div id="greeting" class="greeting-message">
-                    <p>Hi there! Please pick one of the following services:</p>
-                    <div id="service-buttons">
-                        <button onclick="handleServiceClick('Accounting')">Accounting</button>
-                        <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
-                        <button onclick="handleServiceClick('Selling')">Selling</button>
-                        <button onclick="handleServiceClick('CRM')">CRM</button>
-                        <button onclick="handleServiceClick('Payroll')">Payroll</button>
-                        <button onclick="handleServiceClick('Stock')">Stock</button>
-                        <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
-                        <button onclick="handleServiceClick('System Reports')">System Reports</button>
-                        <button onclick="handleServiceClick('HR')">HR</button>
-                    </div>
-                </div>
-            </div>
-            <div class="input-container">
-                <input type="text" id="user-input" placeholder="Type a message..." />
-                <button id="send-button">Send</button>
-            </div>
-            <div class="clear-history-container">
-                <button id="clearHistory" class="clear-btn">Clear Chat History</button>
-            </div>
-        </div>
-
-        <!-- The iframe container is hidden initially -->
-        <div id="iframe-container">
-            <iframe id="report-iframe" src="" frameborder="0"></iframe>
-        </div>
-    </div>
-
-    <script>
-      /* All your JavaScript exactly as before */
-      const breadcrumbs = ["Main menu"];
-
-      function updateBreadcrumbs() {
-          const breadcrumbsContainer = document.getElementById("breadcrumbs");
-          breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) =>
-              `<a href="#" onclick="navigateToBreadcrumb(${index})">${crumb}</a>`
-          ).join(" > ");
-      }
-
-      function navigateToBreadcrumb(index) {
-          breadcrumbs.splice(index + 1);
-          updateBreadcrumbs();
-          if (index === 0) {
-              location.reload(); // Main menu
-          } else {
-              handleBreadcrumbNavigation(breadcrumbs[index]);
-          }
-      }
-
-      function handleBreadcrumbNavigation(serviceName) {
-          const chatBox = document.getElementById("chat-box");
-          chatBox.innerHTML = "";
-          displayMessage(`Navigated back to ${serviceName}`, 'bot-message');
-
-          if (serviceName === "Main menu") {
-              location.reload(); 
-          } else {
-              handleServiceClick(serviceName, true);
-          }
-      }
-
-      function sendMessage() {
-          const userMessage = document.getElementById("user-input").value.trim();
-          if (!userMessage) return;
-
-          const greeting = document.getElementById("greeting");
-          if (greeting) greeting.remove();
-
-          displayMessage(userMessage, 'user-message');
-          document.getElementById("user-input").value = '';
-
-          fetch('/get_response', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: userMessage })
-          })
-          .then(response => response.json())
-          .then(data => {
-              displayMessage(data.response, 'bot-message');
-          })
-          .catch(error => {
-              console.error("Error:", error);
-              displayMessage("Sorry, there was an error.", 'bot-message');
-          });
-      }
-
-      function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
-          if (!isBreadcrumbNavigation) {
-              breadcrumbs.push(serviceName);
-              updateBreadcrumbs();
-          }
-
-          displayMessage(serviceName, 'user-message');
-          const greeting = document.getElementById("greeting");
-          if (greeting) greeting.remove();
-
-          fetch('/get_response', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: serviceName })
-          })
-          .then(response => response.json())
-          .then(data => {
-              const responseMessage = data.response;
-              displayMessage(responseMessage, 'bot-message');
-
-              if (responseMessage.startsWith("iframe::")) {
-                  const reportUrl = responseMessage.split("iframe::")[1].trim();
-                  const iframeContainer = document.getElementById('iframe-container');
-                  const iframe = document.getElementById('report-iframe');
-
-                  iframe.src = reportUrl;
-                  iframeContainer.style.display = 'block';
-                  document.getElementById('container').classList.add('chat-with-iframe');
-              } else {
-                  document.getElementById('container').classList.remove('chat-with-iframe');
-                  const iframeContainer = document.getElementById('iframe-container');
-                  iframeContainer.style.display = 'none';
-              }
-
-              if (serviceName === "Accounting") {
-                  displaySubServiceOptions(['Journal Entry', 'Payment Entry', 'Sales Invoice', 'Purchase Invoice'], "accounting-subservices");
-              } else if (serviceName === "Purchasing") {
-                  displaySubServiceOptions(['Purchase Invoice'], "purchasing-subservices");
-              } else if (serviceName === "Selling") {
-                  displaySubServiceOptions(['Sales Invoice'], "selling-subservices");
-              } else if (serviceName === "CRM") {
-                  displaySubServiceOptions(['Lead', 'Opportunity', 'Customer'], "crm-subservices");
-              } else if (serviceName === "Payroll") {
-                  displaySubServiceOptions(['Payroll Entry', 'Salary Slip'], "payroll-subservices");
-              } else if (serviceName === "Stock") {
-                  displaySubServiceOptions(['Stock Entry', 'Stock Reconciliation'], "stock-subservices");
-              } else if (serviceName === "Manufacturing") {
-                  displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
-              } else if (serviceName === "System Reports") {
-                  displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
-              } else if (serviceName === "Purchasing & Selling Reports") {
-                  displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
-              } else if (serviceName === "Accounting Reports") {
-                  displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
-              } else if (serviceName === "HR & Payroll Reports") {
-                  displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
-              } else if (serviceName === "Stock Reports") {
-                  displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
-              }
-          })
-          .catch(error => {
-              console.error("Error:", error);
-              displayMessage("Sorry, there was an error.", 'bot-message');
-          });
-      }
-
-      function displaySubServiceOptions(options, containerClass) {
-          const chatBox = document.getElementById("chat-box");
-          const subServiceOptions = document.createElement("div");
-          subServiceOptions.className = `sub-service-buttons ${containerClass}`;
-          subServiceOptions.innerHTML = `
-              <p style="margin-bottom: 10px;">Please select one</p>
-              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
-                  ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
-              </div>
-          `;
-          chatBox.appendChild(subServiceOptions);
-          chatBox.scrollTop = chatBox.scrollHeight;
-      }
-
-      function displayMessage(message, className) {
-          const chatBox = document.getElementById("chat-box");
-          const iframeContainer = document.getElementById("iframe-container");
-          const messageDiv = document.createElement("div");
-          messageDiv.className = "message " + className;
-
-          if (message.startsWith("iframe::")) {
-              const url = message.split("iframe::")[1];
-              
-              // Remove existing iframe if any
-              const existingIframe = iframeContainer.querySelector("iframe");
-              if (existingIframe) existingIframe.remove();
-
-              // Create iframe element
-              const iframe = document.createElement("iframe");
-              iframe.src = url;
-
-              iframeContainer.appendChild(iframe);
-              iframeContainer.style.display = "block";
-
-              // Move chat box slightly to the left
-              chatBox.style.marginRight = "10px";
-          } else {
-              // Convert markdown-style formatting
-              message = message
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
-                  .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')        // Headers
-                  .replace(/\n- /g, '\nâ€¢ ')                          // Bullet points
-                  .replace(/\n/g, '<br>');                           // Line breaks
-
-              messageDiv.innerHTML = message;
-              chatBox.appendChild(messageDiv);
-          }
-
-          chatBox.scrollTop = chatBox.scrollHeight;
-      }
-
-      // Initialize breadcrumbs
-      updateBreadcrumbs();
-
-      document.getElementById("user-input").addEventListener("keydown", function (event) {
-          if (event.key === "Enter") {
-              sendMessage();
-              event.preventDefault();
-          }
-      });
-
-      document.getElementById("send-button").addEventListener("click", sendMessage);
-
-      document.getElementById('clearHistory').addEventListener('click', function() {
-          fetch('/clear_history', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  session_id: 'default'
-              })
-          })
-          .then(response => response.json())
-          .then(data => {
-              // Clear the chat display
-              const chatBox = document.getElementById('chat-box');
-              chatBox.innerHTML = '';
-              
-              // Re-add the initial greeting
-              const greeting = document.createElement('div');
-              greeting.id = 'greeting';
-              greeting.className = 'greeting-message';
-              greeting.innerHTML = `
-                  <p>Hi there! Please pick one of the following services:</p>
-                  <div id="service-buttons">
-                      <button onclick="handleServiceClick('Accounting')">Accounting</button>
-                      <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
-                      <button onclick="handleServiceClick('Selling')">Selling</button>
-                      <button onclick="handleServiceClick('CRM')">CRM</button>
-                      <button onclick="handleServiceClick('Payroll')">Payroll</button>
-                      <button onclick="handleServiceClick('Stock')">Stock</button>
-                      <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
-                      <button onclick="handleServiceClick('System Reports')">System Reports</button>
-                      <button onclick="handleServiceClick('HR')">HR</button>
-                  </div>
-              `;
-              chatBox.appendChild(greeting);
-              
-              // Reset breadcrumbs
-              breadcrumbs.length = 1;
-              updateBreadcrumbs();
-              
-              // Hide iframe if visible
-              document.getElementById('iframe-container').style.display = 'none';
-              document.getElementById('container').classList.remove('chat-with-iframe');
-          })
-          .catch(error => console.error('Error:', error));
-      });
-    </script>
-</body>
-</html>
+if __name__ == "__main__":
+    app.run(debug=True)
