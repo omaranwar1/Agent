@@ -610,6 +610,13 @@
             white-space: nowrap;
         }
     }
+
+    .error-message {
+        background-color: #ffebee !important;
+        color: #c62828;
+        border-left: 4px solid #c62828;
+        padding-left: 15px;
+    }
   </style>
 </head>
 <body>
@@ -758,7 +765,7 @@
           }
       }
 
-      function sendMessage() {
+        function sendMessage() {
             const userMessage = document.getElementById("user-input").value.trim();
             if (!userMessage) return;
 
