@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ramzy</title>
+  <link rel="icon" href="/static/android-chrome-192x192.png" type="image/png">
   <style>
 
     body {
@@ -295,7 +296,7 @@
     .logout-container {
         position: absolute;
         top: 10px;
-        right: 120px;  /* Position to the left of clear button */
+        right: 60px;  /* Increased from 120px to move further left */
         z-index: 1000;
     }
 
@@ -476,7 +477,7 @@
 
         .logout-container {
             position: fixed;
-            top: 5px;  /* Reduced from 10px */
+            top: 5px;
             right: 70px;
             z-index: 1000;
         }
@@ -632,18 +633,8 @@
                 <div id="greeting" class="greeting-message">
                     <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
                     <div id="service-buttons">
-                        <button onclick="handleServiceClick('Accounting')">Accounting</button>
-                        <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
-                        <button onclick="handleServiceClick('Selling')">Selling</button>
-                        <button onclick="handleServiceClick('CRM')">CRM</button>
-                        <button onclick="handleServiceClick('Payroll')">Payroll</button>
-                        <button onclick="handleServiceClick('Stock')">Stock</button>
-                        <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
-                        <button onclick="handleServiceClick('HR')">HR</button>
-                        <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
-                        <button onclick="handleServiceClick('System Reports')">System Reports</button>
-                        <button onclick="handleServiceClick('Create New')">Create New</button>
-                        <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+                        <button onclick="handleServiceClick('View data')">View data</button>
+                        <button onclick="handleServiceClick('Add data')">Add data</button>
                     </div>
                 </div>
             </div>
@@ -851,8 +842,8 @@
                         displaySubServiceOptions(['BOM', 'Work Order', 'Job Card'], "manufacturing-subservices");
                     } else if (serviceName === "HR") {
                         displaySubServiceOptions(['employee checkin', 'employee'], "HR-subservices");
-                    }else if (serviceName === "Show Projects") {
-                        displaySubServiceOptions(['task', 'project', 'employee checkin', 'timesheet'], "Project-subservices");
+                    }else if (serviceName === "Projects") {
+                        displaySubServiceOptions(['task', 'project', 'employee checkin', 'timesheet'], "Projects-subservices");
                     } else if (serviceName === "System Reports") {
                         displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
                     } else if (serviceName === "Purchasing & Selling Reports") {
@@ -860,31 +851,33 @@
                     } else if (serviceName === "Accounting Reports") {
                         displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
                     } else if (serviceName === "HR & Payroll Reports") {
-                        displaySubServiceOptions(['Employee Attendance', 'Salary Register'], "hr-payroll-reports");
+                        displaySubServiceOptions(['Monthly Attendance Sheet', 'Shift Attendance', 'Employee Leave Balance Summary', 'Salary Register'], "hr-payroll-reports");
                     } else if (serviceName === "Stock Reports") {
-                        displaySubServiceOptions(['Stock Summary', 'Stock Ledger'], "stock-reports");
-                    } else if (serviceName === "Create New") {
-                        displaySubServiceOptions(['New Accounting', 'New Purchasing', 'New Selling', 'New CRM', 'New HR', 'New Payroll', 'New Stock', 'New Manufacturing', 'Other']);
-                    } else if (serviceName === "New Accounting") {
+                        displaySubServiceOptions(['Total Stock Summary', 'Stock Ledger'], "stock-reports");
+                    } else if (serviceName === "Add data") {
+                        displaySubServiceOptions(['Accounting module', 'Purchasing module', 'Selling module', 'CRM module', 'HR module', 'Payroll module', 'Stock module', 'Manufacturing module', 'Other modules']);
+                    } else if (serviceName === "Accounting module") {
                         displaySubServiceOptions(["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"]);
-                    } else if (serviceName === "New Purchasing") {
+                    } else if (serviceName === "Purchasing module") {
                         displaySubServiceOptions([ "New Purchase Invoice", "New Purchase Receipt" ]);
-                    } else if (serviceName === "New Selling") {
+                    } else if (serviceName === "Selling module") {
                         displaySubServiceOptions([ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ]);
-                    } else if (serviceName === "New CRM") {
+                    } else if (serviceName === "CRM module") {
                         displaySubServiceOptions([ "New Lead", "New Opportunity", "New Customer" ]);
-                    } else if (serviceName === "New HR") {
+                    } else if (serviceName === "HR module") {
                         displaySubServiceOptions([ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee"]);
-                    } else if (serviceName === "New Payroll") {
+                    } else if (serviceName === "Payroll module") {
                         displaySubServiceOptions(["New Payroll Entry", "New Salary Slip" ]);
-                    } else if (serviceName === "New Stock") {
+                    } else if (serviceName === "Stock module") {
                         displaySubServiceOptions([ "New Stock Entry", "New Stock Reconciliation" ]);
-                    } else if (serviceName === "New Manufacturing") {
+                    } else if (serviceName === "Manufacturing module") {
                         displaySubServiceOptions(["New BOM", "New Work Order", "New Job Card"]);
-                    } else if (serviceName === "Other") {
+                    } else if (serviceName === "Other modules") {
                         displaySubServiceOptions(["New Prospect",  "New Maintenance Schedule"]);
                     } else if (serviceName === "Dashboards") {
-                        displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resources Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufactring Dashboard', 'Project Dashboard']);
+                        displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']);
+                    } else if (serviceName === "View data") {
+                        displaySubServiceOptions(['Accounting', "Purchasing", "Selling", "CRM", "Payroll", "Stock", "Manufacturing", "HR", "Projects","System Reports", "Dashboards"]);
                     }
                     hideLoading(); // Moved here to ensure it's called after all processing is complete
                 })
@@ -988,18 +981,8 @@
               greeting.innerHTML = `
                   <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
                   <div id="service-buttons">
-                      <button onclick="handleServiceClick('Accounting')">Accounting</button>
-                      <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
-                      <button onclick="handleServiceClick('Selling')">Selling</button>
-                      <button onclick="handleServiceClick('CRM')">CRM</button>
-                      <button onclick="handleServiceClick('Payroll')">Payroll</button>
-                      <button onclick="handleServiceClick('Stock')">Stock</button>
-                      <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
-                      <button onclick="handleServiceClick('HR')">HR</button>
-                      <button onclick="handleServiceClick('Show Projects')">Show Projects</button>
-                      <button onclick="handleServiceClick('System Reports')">System Reports</button>
-                      <button onclick="handleServiceClick('Create New')">Create New</button>
-                      <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+                      <button onclick="handleServiceClick('View data')">View data</button>
+                      <button onclick="handleServiceClick('Add data')">Add data</button>
                   </div>
               `;
               chatBox.appendChild(greeting);
