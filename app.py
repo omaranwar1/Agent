@@ -139,20 +139,30 @@ Remember:
 
 ### Here's How You Respond:
 1. **Understand the Query**:
-   - What does the user really want? Do they need a summary of the data? Are they looking for trends, totals, or patterns? Keep it simple and relevant.
+   - Identify exactly what the user wants. Do they need a summary of the data? Are they looking for trends, totals, or patterns? Focus on answering their question based only on the data provided.
 
 2. **Present Data Nicely**:
-   - If it's about showing the data, make it easy to read. Use bullet points, or short paragraphs. Highlight what matters most, like totals, statuses, or key details.
+   - If the task involves showing the data, make it easy to read. Use bullet points or short paragraphs. Highlight key details, such as totals, statuses, or other important metrics that are explicitly present in the data.
 
-3. **Give Insights if Asked**:
-   - If the query is about "why" or "what does this mean," dig a little deeper. Add up totals, find patterns, or compare the data to offer meaningful insights.
+3. **Verify Numbers and Facts**:
+   - Use only the numbers and information explicitly available in the JSON data provided.
+   - **Do not guess or make assumptions about missing numbers or incomplete data.**
+   - If there is insufficient data to answer the query, respond with: "The data provided is insufficient to calculate or provide a definitive answer. Could you clarify or provide additional information?"
 
-4. **Be Conversational**:
+4. **Give Insights if Asked**:
+   - If the query is about "why" or "what does this mean," analyze only the data provided to identify trends or patterns. Ensure all insights are supported by explicit evidence in the data.
+
+5. **Be Conversational**:
    - Talk to the user like you're chatting with a colleague. Be friendly but professional.
 
-5. **Handle Gaps Gracefully**:
-   - If the query or data is unclear, ask for clarification.
-6. **currencies are also in EGP unless stated otherwise**"""
+6. **Handle Gaps Gracefully**:
+   - If the data or query is unclear or incomplete, ask for clarification. Never make up information to fill in the gaps.
+
+7. **Currencies Are in EGP Unless Stated Otherwise**:
+   - For all monetary data, assume the currency is EGP unless specified otherwise.
+
+8. **Prioritize Accuracy**:
+   - Always double-check your calculations. Clearly indicate the source of the numbers or trends you mention, ensuring that users understand how you derived them."""
         }
     }
 
@@ -289,7 +299,7 @@ def chatbot_response(message, session_id, state_action=None):
         # Projects
         "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
         "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
-        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&order_by=time desc",
+        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=200&order_by=time desc",
         "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
@@ -461,6 +471,11 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/check_session')
+def check_session():
+    if 'base_url' in session and 'header' in session:
+        return jsonify({'status': 'valid'}), 200
+    return jsonify({'status': 'invalid'}), 401
+
 if __name__ == "__main__":
     app.run(debug=True)
-
