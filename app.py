@@ -55,14 +55,24 @@ STATES = {
 # User credentials and their corresponding base URLs and headers
 user_credentials = {
     "admin": {
-        "password": "admin",
+        "password": "123",
+        "role": "admin",
         "base_url": "https://system.edenmea.com",
         "header": {
             "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
         }
     },
-    "peter": {
-        "password": "peter",
+    "Finance Manager": {
+        "password": "123",
+        "role": "Finance Manager",
+        "base_url": "https://system.edenmea.com",
+        "header": {
+            "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
+        }
+    },
+    "Sales Manager": {
+        "password": "123",
+        "role": "Sales Manager",
         "base_url": "https://system.edenmea.com",
         "header": {
             "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
@@ -109,22 +119,23 @@ def get_ai_response(user_message, session_id, state_action=None, api_data=None):
             "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help --all without explicitly stating that you're an "ERP assistant" or "ERP Data" or "ERPNext" refer to them as assistant website and system you are just an assitant to the user to help naviagte them. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 Your primary role is to:
-1. Guide users through the main menu options
+1. Guide users through the quick action menu.
 2. Help them understand what each section does
 3. Provide clear navigation instructions
 
-Main Menu Structure:
-- Accounting: Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice
-- Purchasing: Purchase Invoice, Purchase Receipt
-- Selling: Sales Invoice, Sales Order, Quotations
-- CRM: Lead, Opportunity, Customer
-- Payroll: Payroll Entry, Salary Slip
-- Stock: Stock Entry, Stock Reconciliation
-- Manufacturing: BOM, Work Order, Job Card
-- System Reports: Various report categories
-- HR: Leave Applications, Attendance Tools
-- Create New: access to create any document creating any document is done there(New Accounting, New Purchasing, New Selling, New CRM , New HR, New Payroll, New Stock, New Manufacturing, Other(New Prospect
-, New Maintenance Schedule)) all of these are buttons in Create New. Guide the user to the right button based on the user input.
+Quick Action Menu Structure:
+**Names without 'Insights' indicate creation options, to help when guiding**
+- Accounting: Accounting Insights, Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice.
+- Purchasing: Purchasing Insights, Purchase Invoice, Purchase Receipt
+- Selling: Selling Insights, Sales Invoice, Sales Order, Quotations, Supplier Quotation, Request for Quotation
+- Customers: Customer Insights, Lead, Opportunity, Customer
+- Payroll: Payroll Insights, Payroll Entry, Salary Slip
+- Stock: Stock Insights, Stock Entry, Stock Reconciliation
+- Manufacturing:  Manufacturing Insights, BOM, Work Order, Job Card
+- HR: HR Insights, Leave Policy Assignment, Leave Application, Employee Attendance Tool, Upload Attendance, Employee
+- Projects: Projects Insights, Task, Project, Employee Check-in, Timesheet
+- System Reports: Purchasing & Selling Reports(includes: Purchase Analytics, Purchase Invoice Trends, Sales Analytics, Sales Invoice Trends), Accounting Reports(includes: General Ledger, Balance Sheet, Profit and Loss Statement, Accounts Payable Summary, Accounts Receivable Summary, Gross Profit), HR & Payroll Reports(includes: Monthly Attendance Sheet, Shift Attendance, Employee Leave Balance Summary, Salary Register), Stock Reports(includes: Total Stock Summary, Stock Ledger)
+- Dashboards: Accounts Dashboard, Buying Dashboard, Selling Dashboard, CRM Dashboard, HR Dashboard, Payroll Dashboard, Stock Dashboard, Manufacturing Dashboard, Project Dashboard
 
 Remember:
 - Keep responses focused on navigation and guidance
@@ -236,7 +247,7 @@ def chatbot_response(message, session_id, state_action=None):
         "accounting": "What accounting service do you need?",
         "purchasing": "What purchasing service do you need?",
         "selling": "What selling service do you need?",
-        "crm": "What CRM service do you need?",
+        "customers": "What customers service do you need?",
         "payroll": "What payroll service do you need?",
         "stock": "What stock service do you need?",
         "manufacturing": "What manufacturing service do you need?",
@@ -257,61 +268,73 @@ def chatbot_response(message, session_id, state_action=None):
 
     # System Data Entry subdivisions and documents
     system_data_entry = {
-        "accounting module": ["New Journal Entry", "New Payment Entry", "New Sales Invoice", "New Purchase Invoice"],
-        "purchasing module": [ "New Purchase Invoice", "New Purchase Receipt" ],
-        "selling module": [ "New Sales Invoice", "New Sales Order",  "New Quotation", "New Supplier Quotation", "New Request for Quotation" ],
-        "crm module": [ "New Lead", "New Opportunity", "New Customer" ],
-        "hr module": [ "New Leave Policy Assignment", "New Leave Application", "New Employee Attendance Tool", "New Upload Attendance", "New Employee" ],
-        "payroll module": ["New Payroll Entry", "New Salary Slip" ],
-        "stock module": [ "New Stock Entry", "New Stock Reconciliation"],
-        "manufacturing module": ["New BOM", "New Work Order", "New Job Card"],
-        "other modules": ["New Prospect",  "New Maintenance Schedule" ]
+        "accounting module": ["Journal Entry", "Payment Entry", "Sales Invoice", "Purchase Invoice"],
+        "purchasing module": [ "Purchase Invoice", "Purchase Receipt" ],
+        "selling module": [ "Sales Invoice", "Sales Order",  "Quotation", "Supplier Quotation", "Request for Quotation" ],
+        "customers module": [ "Lead", "Opportunity", "Customer" ],
+        "hr module": [ "Leave Policy Assignment", "Leave Application", "Employee Attendance Tool", "Upload Attendance", "Employee" ],
+        "payroll module": ["Payroll Entry", "Salary Slip" ],
+        "stock module": [ "Stock Entry", "Stock Reconciliation"],
+        "manufacturing module": ["BOM", "Work Order", "Job Card"],
+        "other modules": ["Prospect",  "Maintenance Schedule" ],
+        "projects module": ["Task", "Project", "Employee Checkin", "Timesheet"]
     }
 
     # Sub-services APIs
     service_apis = {
         # Accounting 
-        "journal entry": "/api/resource/Journal Entry?filters=[]&fields=[\"title\",\"voucher_type\",\"total_debit\",\"name\"]",
-        "payment entry": "/api/resource/Payment Entry?filters=[[\"docstatus\",\"=\",\"1\"]]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]",
-        "sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
-        "purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
+        "view journal entry": "/api/resource/Journal Entry?filters=[]&fields=[\"title\",\"voucher_type\",\"total_debit\",\"name\"]",
+        "view payment entry": "/api/resource/Payment Entry?filters=[[\"docstatus\",\"=\",\"1\"]]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]",
+        "view sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
+        "view purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
 
         # selling
-        "quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]",
-        "delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]',
+        "view quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]",
+        "view delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]',
 
-        # CRM
-        "lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
-        "opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
-        "customer": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]",
+        # customer
+        "view lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
+        "view opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
+        "view customer List": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]",
 
         # HR
-        "employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]',
+        "view employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]',
 
         # Payroll
-        "payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]",
-        "salary slip": "/api/resource/Salary Slip?filters=[]&fields=[\"employee_name\", \"status\", \"employee\", \"company\", \"posting_date\", \"name\"]",
+        "view payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]",
+        "view salary slip": "/api/resource/Salary Slip?filters=[]&fields=[\"employee_name\", \"status\", \"employee\", \"company\", \"posting_date\", \"name\"]",
 
         # Stock
-        "stock entry": "/api/resource/Stock Entry?filters=[]&fields=[\"stock_entry_type\", \"purpose\", \"source_address_display\", \"target_address_display\", \"name\"]",
-        "stock reconciliation": "/api/resource/Stock Reconciliation?filters=[]&fields=[\"name\", \"posting_date\", \"posting_time\"]",
+        "view stock entry": "/api/resource/Stock Entry?filters=[]&fields=[\"stock_entry_type\", \"purpose\", \"source_address_display\", \"target_address_display\", \"name\"]",
+        "view stock reconciliation": "/api/resource/Stock Reconciliation?filters=[]&fields=[\"name\", \"posting_date\", \"posting_time\"]",
 
         # Manufacturing
-        "bom": "/api/resource/BOM?filters=[]&fields=[\"name\", \"item\", \"is_active\", \"is_default\"]",
-        "work order": "/api/resource/Work Order?filters=[]&fields=[\"production_item\", \"status\", \"name\"]",
-        "job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]",
+        "view bom": "/api/resource/BOM?filters=[]&fields=[\"name\", \"item\", \"is_active\", \"is_default\"]",
+        "view work order": "/api/resource/Work Order?filters=[]&fields=[\"production_item\", \"status\", \"name\"]",
+        "view job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]",
 
         # Projects
-        "task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
-        "project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
-        "employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=30&order_by=time desc&start=10",
-        "timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
+        "view task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
+        "view project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
+        "view employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=30&order_by=time desc&start=10",
+        "view timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
     }
 
     system_dashboards = {
         "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']
     }
 
+    system_insights = {
+        "accounting insights": "What accounting insights do you need?",
+        "purchasing insights": "What purchasing insights do you need?",
+        "selling insights": "What selling insights do you need?",
+        "customer insights": "What customer insights do you need?",
+        "payroll insights": "What payroll insights do you need?",
+        "stock insights": "What stock insights do you need?",
+        "manufacturing insights": "What manufacturing insights do you need?",
+        "projects insights": "What projects insights do you need?",
+        "hr insights": "What hr insights do you need?",
+    }
 
     # For navigation requests, set to NAVIGATION mode
     if normalized_message in main_services:
@@ -322,6 +345,11 @@ def chatbot_response(message, session_id, state_action=None):
     if normalized_message in services:
         session_states[session_id] = STATES['NAVIGATION']
         return services[normalized_message]
+    
+    # For navigation requests, set to NAVIGATION mode
+    if normalized_message in system_insights:
+        session_states[session_id] = STATES['NAVIGATION']
+        return system_insights[normalized_message]
     
     # Check if the message corresponds to a subdivision in System Reports
     elif normalized_message in system_reports:
@@ -365,7 +393,7 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, new_docs in system_data_entry.items():
         if normalized_message in [new_doc.lower() for new_doc in new_docs]:
             url = generate_url(normalized_message)
-            #webbrowser.open(url)
+            webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
         
     for subdivision, dashs in system_dashboards.items():
@@ -399,10 +427,11 @@ def authenticate():
             # Make session permanent
             session.permanent = True
             
-            # Store the base_url and header in the session
+            # Store the base_url, header, username, and role in the session
             session['base_url'] = user_credentials[username]["base_url"]
             session['header'] = user_credentials[username]["header"]
             session['username'] = username
+            session['role'] = user_credentials[username]["role"]
             
             # Ensure session is saved
             session.modified = True
@@ -492,3 +521,4 @@ def check_session():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
