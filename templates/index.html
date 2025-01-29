@@ -95,8 +95,14 @@
 
     .greeting-message {
         color: #666;
-        font-style: italic;
+        font-weight: 600; /* Semi-bold */
+        font-size: 1.1em;
+        text-align: center;
+        max-width: 800px;
+        margin: 10px auto;
+        line-height: 1.5;
     }
+
 
     .input-container {
         display: flex;
@@ -283,6 +289,17 @@
       border-bottom: 1px solid;
       border-image: linear-gradient(to right, #90cdf4, #bee3f8) 1;
     }
+
+    .bot-message .header-4 {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 12px 0 6px 0;
+        padding-bottom: 3px;
+        border-bottom: 1px solid;
+        border-image: linear-gradient(to right, #bee3f8, #ebf8ff) 1;
+    }
+
 
     /* Adjust horizontal rule spacing */
     .bot-message .horizontal-rule {
@@ -887,9 +904,9 @@
             <div id="breadcrumbs"></div>
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
-                    <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
+                    <p>Hey, I’m Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
                     <div id="service-buttons">
-                        <button onclick="handleServiceClick('place holer')">place holer</button>
+                        <!--<button onclick="handleServiceClick('place holer')">place holer</button>-->
                     </div>
                 </div>
             </div>
@@ -1319,6 +1336,11 @@
             type: 'header-3',
             content: trimmedLine.substring(4)
           });
+        } else if (trimmedLine.startsWith('#### ')) {
+          processedLines.push({
+            type: 'header-4',
+            content: trimmedLine.substring(5)
+          });
         }
         // Handle horizontal rules
         else if (trimmedLine === '---' || trimmedLine === '***' || trimmedLine === '___') {
@@ -1396,6 +1418,9 @@
               case 'header-3':
                 messageDiv.innerHTML += `<div class="header-3">${line.content}</div>`;
                 break;
+              case 'header-4':
+                messageDiv.innerHTML += `<div class="header-4">${line.content}</div>`;
+                break;
               case 'horizontal-rule':
                 messageDiv.innerHTML += `<hr class="horizontal-rule">`;
                 break;
@@ -1453,13 +1478,13 @@
               greeting.id = 'greeting';
               greeting.className = 'greeting-message';
               greeting.innerHTML = `
-                  <p>Hi I am Ramzy! Please pick one of the following services or ask me any question:</p>
+                  <p> Hey, I’m Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
                   <div id="service-buttons">
-                      <button onclick="handleServiceClick('Place holder')">place holder</button>
+                      <!--<button onclick="handleServiceClick('Place holder')">place holder</button>-->
                   </div>
               `;
               chatBox.appendChild(greeting);
-              
+
               // Reset breadcrumbs
               breadcrumbs.length = 1;
               updateBreadcrumbs();
