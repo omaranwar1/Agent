@@ -9,12 +9,9 @@ from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from functools import wraps
 from datetime import datetime, timedelta
+from user_credentials import user_credentials  # Import credentials from the external file
 
-#####################
-# Backend API details for additional data fetching
-# base_url = "https://system.edenmea.com"
-# header = {"Authorization": "token 92420cab12d4143:54f1bb6f943e856"}
-#####################
+
 app = Flask(__name__)
 
 # Add a secret key for session management
@@ -52,34 +49,6 @@ STATES = {
     'DATA_ANALYSIS': 'data_analysis'  # For viewing and analyzing data
 }
 
-# User credentials and their corresponding base URLs and headers
-user_credentials = {
-    "admin": {
-        "password": "123",
-        "role": "admin",
-        "base_url": "https://system.edenmea.com",
-        "header": {
-            "Authorization": "token 92420cab12d4143:54f1bb6f943e856"
-        }
-    },
-    "Finance Manager": {
-        "password": "123",
-        "role": "Finance Manager",
-        "base_url": "https://system.edenmea.com",
-        "header": {
-            "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
-        }
-    },
-    "Sales Manager": {
-        "password": "123",
-        "role": "Sales Manager",
-        "base_url": "https://system.edenmea.com",
-        "header": {
-            "Authorization": "token d514a87307f1336:a9e7400aa1387ac"
-        }
-    }
-}
-
 # Function to create the URL for data entry
 def generate_url(input_string):
     # Check if the input matches specific cases
@@ -94,29 +63,15 @@ def generate_url(input_string):
         url = f"{session['base_url']}/app/{doctype}/new-{doctype}"
     return url
 
-# For dashboards
+# Function to create the URL for dashboards
 def generate_url_dashboards(input_string):
-        dashboard = input_string.lower().replace(" dashboard", "").replace(" ", "%20")
-        dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
-        return dasboard_url
+    dashboard = input_string.lower().replace(" dashboard", "").replace(" ", "%20")
+    dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
+    return dasboard_url
 
-def get_ai_response(user_message, session_id, state_action=None, api_data=None):
-    if session_id not in chat_histories:
-        chat_histories[session_id] = []
-    
-    # Initialize or get session state
-    if session_id not in session_states:
-        session_states[session_id] = STATES['NAVIGATION']
-    
-    # Update state based on explicit state action
-    if state_action:
-        session_states[session_id] = STATES.get(state_action, STATES['NAVIGATION'])
-
-    # Define the two system messages
-    system_messages = {
-        STATES['NAVIGATION']: {
-            "role": "system",
-            "content": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help --all without explicitly stating that you're an "ERP assistant" or "ERP Data" or "ERPNext" refer to them as assistant website and system you are just an assitant to the user to help naviagte them. Your focus is solely on delivering value by addressing their needs seamlessly.
+# Role-based navigation content
+navigation_list = {
+    "admin": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help --all without explicitly stating that you're an "ERP assistant" or "ERP Data" or "ERPNext" refer to them as assistant website and system you are just an assitant to the user to help naviagte them. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 Your primary role is to:
 1. Guide users through the quick action menu.
@@ -142,11 +97,143 @@ Remember:
 - Explain options clearly and concisely
 - Help users find the right tool for their needs
 - Currencies are in EGP unless stated otherwise
-- make your presentation simple and easy to read"""
+- make your presentation simple and easy to read""",
+
+    "Sales Manager": """You are Ramzy, Eden ERP Assistant. You help Sales Managers navigate the Eden Assistant website and system to manage selling and CRM tasks effectively. Do not explicitly state that you're an "ERP assistant" or "ERP Data" or "ERPNext" — refer to yourself as the assistant. Focus on addressing the user's needs seamlessly.
+
+Your primary role is to:
+1. Guide the Sales Manager through the quick action menu related to selling and CRM.
+2. Help them understand the tools in these areas.
+3. Provide clear navigation instructions.
+
+Quick Action Menu Structure:
+**Names without 'Insights' indicate creation options, to help when guiding**
+- Selling: Selling Insights, Sales Invoice, Sales Order, Quotations, Supplier Quotation, Request for Quotation.
+- Customers: Customer Insights, Lead, Opportunity, Customer.
+- System Reports: Purchasing & Selling Reports (includes: Purchase Analytics, Purchase Invoice Trends, Sales Analytics, Sales Invoice Trends).
+- Dashboards: Selling Dashboard, CRM Dashboard.
+
+Remember:
+- Keep responses focused on navigation and sales/customer(CRM)related guidance.
+- Explain options clearly and concisely.
+- Help Sales Managers find the right tools for managing their sales processes effectively.
+- Currencies are in EGP unless stated otherwise.
+- Keep the presentation simple and easy to read.
+""",
+
+    "HR Manager": """You are Ramzy, Eden ERP Assistant. You help HR Managers navigate through the Eden Assistant website and the underlying system to manage HR, payroll, and projects seamlessly. Do not explicitly state that you're an "ERP assistant" or "ERP Data" or "ERPNext" — refer to yourself as the assistant. Focus on addressing the user's needs effortlessly.
+
+Your primary role is to:
+1. Guide the HR Manager through the quick action menu related to HR, payroll, and projects.
+2. Help them understand the functions in these areas.
+3. Provide clear navigation instructions 
+
+Quick Action Menu Structure:
+**Names without 'Insights' indicate creation options, to help when guiding**
+- HR: HR Insights, Leave Policy Assignment, Leave Application, Employee Attendance Tool, Upload Attendance, Employee.
+- Payroll: Payroll Insights, Payroll Entry, Salary Slip.
+- Projects: Projects Insights, Task, Project, Employee Check-in, Timesheet.
+- System Reports: HR & Payroll Reports (includes: Monthly Attendance Sheet, Shift Attendance, Employee Leave Balance Summary, Salary Register)
+- Dashboards: HR Dashboard, Payroll Dashboard, Project Dashboard.
+
+Remember:
+- Keep responses focused on navigation and HR/Payroll/Project-related guidance.
+- Explain options clearly and concisely.
+- Help HR Managers find the right tools for managing their team effectively.
+- Currencies are in EGP unless stated otherwise.
+- Keep the presentation simple and easy to read.
+""",
+
+    "Operations Manager": """You are Ramzy, Eden ERP Assistant. You assist Operations Managers in navigating the Eden Assistant website and underlying system to manage stock and manufacturing tasks effectively. Do not explicitly state that you're an "ERP assistant" or "ERP Data" or "ERPNext" — refer to yourself as the assistant. Focus on addressing the user's needs seamlessly.
+
+Your primary role is to:
+1. Guide the Operations Manager through the quick action menu related to stock and manufacturing.
+2. Help them understand the tools in these areas.
+3. Provide clear navigation instructions.
+
+Quick Action Menu Structure for Operations Managers:
+**Names without 'Insights' indicate creation options, to help when guiding**
+- Stock: Stock Insights, Stock Entry, Stock Reconciliation.
+- Manufacturing: Manufacturing Insights, BOM, Work Order, Job Card.
+- System Reports: Stock Reports (includes: Total Stock Summary, Stock Ledger),Purchasing & Selling Reports(includes: Purchase Analytics, Purchase Invoice Trends, Sales Analytics, Sales Invoice Trends.
+- Dashboards: Stock Dashboard, Manufacturing Dashboard.
+
+Remember:
+- Focus on navigation and guidance for stock and manufacturing-related tasks.
+- Explain options clearly and concisely.
+- Help Operations Managers find the right tools for managing operations effectively.
+- Currencies are in EGP unless stated otherwise.
+- Keep the presentation simple and easy to read.
+""",
+
+    "Finance Manager": """You are Ramzy, Eden ERP Assistant. You assist Finance Managers in navigating the Eden Assistant website and underlying system to manage accounting, purchasing, selling, and payroll. Do not explicitly state that you're an "ERP assistant" or "ERP Data" or "ERPNext" — refer to yourself as the assistant. Focus on addressing the user's needs seamlessly.
+
+Your primary role is to:
+1. Guide the Finance Manager through the quick action menu related to accounting, purchasing, selling, and payroll.
+2. Help them understand the tools in these areas.
+3. Provide clear navigation instructions.
+
+Quick Action Menu Structure:
+**Names without 'Insights' indicate creation options, to help when guiding**
+- Accounting: Accounting Insights, Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice.
+- Purchasing: Purchasing Insights, Purchase Invoice, Purchase Receipt.
+- Selling: Selling Insights, Sales Invoice, Sales Order, Quotations,Supplier Quotation, Request for Quotation.
+- Payroll: Payroll Insights, Payroll Entry, Salary Slip.
+- System Reports: Purchasing & Selling Reports(includes: Purchase Analytics, Purchase Invoice Trends, Sales Analytics, Sales Invoice Trends), Accounting Reports(includes: General Ledger, Balance Sheet, Profit and Loss Statement, Accounts Payable Summary, Accounts Receivable Summary, Gross Profit), HR & Payroll Reports(includes: Monthly Attendance Sheet, Shift Attendance, Employee Leave Balance Summary, Salary Register), Stock Reports(includes: Total Stock Summary, Stock Ledger)
+- Dashboards: Accounts Dashboard, Buying Dashboard, Selling Dashboard, Payroll Dashboard.
+
+Remember:
+- Focus on navigation and guidance for finance-related tasks.
+- Explain options clearly and concisely.
+- Help Finance Managers find the right tools for managing their financial processes.
+- Currencies are in EGP unless stated otherwise.
+- Keep the presentation simple and easy to read.
+
+""",
+
+    "General": """You are Ramzy, Eden ERP Assistant. You help users navigate the Eden Assistant website and system effectively, providing guidance on available tools and features to meet their needs. Do not explicitly state that you're an "ERP assistant" or "ERP Data" or "ERPNext" — refer to yourself simply as the assistant. Focus on making the user's experience seamless.
+
+Your primary role:
+1. Guide users through the system and its features.
+2. Help them understand the available options and tools.
+3. Provide clear and concise navigation instructions to help them accomplish their tasks.
+
+General Guidelines:
+- Offer quick, easy-to-follow guidance.
+- Explain features in simple terms.
+- Ensure users feel confident in locating the tools they need.
+- Adapt to the user's needs, offering tailored instructions when necessary.
+
+Remember:
+- Keep your responses straightforward and user-focused.
+- Avoid unnecessary technical jargon—make navigation easy and accessible.
+- Always aim to deliver value by helping users achieve their goals efficiently.
+- Use simple, easy-to-read formatting for all instructions.
+"""
+}
+
+# Update the get_ai_response function to use role-based navigation content
+def get_ai_response(user_message, session_id, state_action=None, api_data=None):
+    if session_id not in chat_histories:
+        chat_histories[session_id] = []
+    
+    # Initialize or get session state
+    if session_id not in session_states:
+        session_states[session_id] = STATES['NAVIGATION']
+    
+    # Update state based on explicit state action
+    if state_action:
+        session_states[session_id] = STATES.get(state_action, STATES['NAVIGATION'])
+
+    # Define the two system messages
+    system_messages = {
+        STATES['NAVIGATION']: {
+            "role": "system",
+            "content": navigation_list.get(session.get('role', 'General'))  # Get role-specific content or default to admin
         },
         STATES['DATA_ANALYSIS']: {
-        "role": "system",
-        "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided --all without explicitly stating that you're an "ERP assistant" or "ERP Data" you are just an assitant to the user to help them with their data. Your focus is solely on delivering value by addressing their needs seamlessly.
+            "role": "system",
+            "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided --all without explicitly stating that you're an "ERP assistant" or "ERP Data" you are just an assitant to the user to help them with their data. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 ### Here's How You Respond:
 1. **Understand the Query**:
@@ -226,9 +313,51 @@ Remember:
     except Exception as e:
         return f"Error getting AI response: {str(e)}"
 
+# Get document count for pagination
+def get_document_count(normalized_message):
+    try:
+        # Remove 'view ' prefix
+        doc_type = normalized_message.replace('view ', '')
+        
+        # Special case for 'bom'
+        if doc_type == 'bom':
+            doc_type = 'BOM'
+        else:
+            # Capitalize first letter of each word
+            doc_type = ' '.join(word.capitalize() for word in doc_type.split())
+        
+        # Construct the API URL
+        api_url = f"{session['base_url']}/api/method/frappe.client.get_count?doctype={doc_type}"
+        
+        # Make the API call
+        response = requests.get(api_url, headers=session['header'])
+        response.raise_for_status()
+        
+        # Extract and return the count
+        count = response.json().get('message', 0)
+        return count
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting document count: {str(e)}")
+        return 0
+
+## fix for API pagination ####################
+global current_API 
+if 'current_API' not in globals():
+    current_API = None  # Ensure current_API starts as None
+
+global placement
+if 'placement' not in globals():
+    placement = {"start": 0}  # Initialize pagination tracking
+
 
 # Chatbot logic
 def chatbot_response(message, session_id, state_action=None):
+
+    #####################################################################
+    global current_API, placement  # Ensure global variables are used
+
+
     # Check if returning to main menu (including page reload)
     if message.lower() in ["main menu", "page_reload"]:
         session_states[session_id] = STATES['NAVIGATION']
@@ -283,30 +412,30 @@ def chatbot_response(message, session_id, state_action=None):
     # Sub-services APIs
     service_apis = {
         # Accounting 
-        "view journal entry": "/api/resource/Journal Entry?filters=[]&fields=[\"title\",\"voucher_type\",\"total_debit\",\"name\"]",
-        "view payment entry": "/api/resource/Payment Entry?filters=[[\"docstatus\",\"=\",\"1\"]]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]",
-        "view sales invoice": "/api/resource/Sales Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]",
-        "view purchase invoice": "/api/resource/Purchase Invoice?filters=[[\"docstatus\",\"=\",\"1\"],[\"posting_date\",\"Timespan\",\"this year\"]]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]",
+        "view journal entry": "/api/resource/Journal Entry?filters=[]&fields=[\"title\",\"voucher_type\",\"total_debit\",\"name\"]&limit=20",
+        "view payment entry": "/api/resource/Payment Entry?filters=[]&fields=[\"title\",\"status\", \"payment_type\", \"posting_date\", \"mode_of_payment\", \"name\"]&limit=20",
+        "view sales invoice": "/api/resource/Sales Invoice?filters=[]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"customer\",\"company\"]&limit=20",
+        "view purchase invoice": "/api/resource/Purchase Invoice?filters=[]&fields=[\"title\",\"status\",\"posting_date\",\"grand_total\",\"name\",\"company\"]&limit=20",
 
         # selling
-        "view quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]",
-        "view delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]',
+        "view quotation" : "/api/resource/Quotation?filters=[]&fields=[\"title\",\"status\",\"grand_total\",\"name\",\"valid_till\"]&limit=20",
+        "view delivery note" : '/api/resource/Delivery Note?filters=[]&fields=["title", "status", "grand_total", "installation_status", "name"]&limit=20',
 
         # customer
-        "view lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]",
-        "view opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]",
-        "view customer List": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]",
+        "view lead": "/api/resource/Lead?filters=[]&fields=[\"lead_name\", \"status\", \"job_title\", \"territory\", \"name\"]&limit=20",
+        "view opportunity": "/api/resource/Opportunity?filters=[]&fields=[\"title\", \"status\", \"naming_series\", \"opportunity_from\", \"opportunity_type\", \"name\"]&limit=20",
+        "view customer List": "/api/resource/Customer?filters=[]&fields=[\"name\", \"customer_group\", \"territory\", \"customer_name\"]&limit=20",
 
         # HR
-        "view employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]',
+        "view employee" : '/api/resource/Employee?filters=[]&fields=["first_name", "last_name", "status", "designation", "name"]&limit=20',
 
         # Payroll
-        "view payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]",
-        "view salary slip": "/api/resource/Salary Slip?filters=[]&fields=[\"employee_name\", \"status\", \"employee\", \"company\", \"posting_date\", \"name\"]",
+        "view payroll entry": "/api/resource/Payroll Entry?filters=[]&fields=[\"name\", \"status\", \"company\", \"currency\", \"branch\"]&limit=20",
+        "view salary slip": "/api/resource/Salary Slip?filters=[]&fields=[\"employee_name\", \"status\", \"employee\", \"company\", \"posting_date\", \"name\"]&limit=20",
 
         # Stock
-        "view stock entry": "/api/resource/Stock Entry?filters=[]&fields=[\"stock_entry_type\", \"purpose\", \"source_address_display\", \"target_address_display\", \"name\"]",
-        "view stock reconciliation": "/api/resource/Stock Reconciliation?filters=[]&fields=[\"name\", \"posting_date\", \"posting_time\"]",
+        "view stock entry": "/api/resource/Stock Entry?filters=[]&fields=[\"stock_entry_type\", \"purpose\", \"source_address_display\", \"target_address_display\", \"name\"]&limit=20",
+        "view stock reconciliation": "/api/resource/Stock Reconciliation?filters=[]&fields=[\"name\", \"posting_date\", \"posting_time\"]&limit=20",
 
         # Manufacturing
         "view bom": "/api/resource/BOM?filters=[]&fields=[\"name\", \"item\", \"is_active\", \"is_default\"]",
@@ -314,16 +443,18 @@ def chatbot_response(message, session_id, state_action=None):
         "view job card": "/api/resource/Job Card?filters=[]&fields=[\"*\"]",
 
         # Projects
-        "view task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]",
-        "view project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]",
-        "view employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=30&order_by=time desc&start=10",
-        "view timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]"
+        "view task": "/api/resource/Task?filters=[]&fields=[\"subject\", \"status\", \"project\", \"priority\", \"name\"]&limit=20",
+        "view project": "/api/resource/Project?filters=[]&fields=[\"project_name\", \"percent_complete\", \"project_type\", \"expected_end_date\", \"estimated_costing\", \"name\"]&limit=20",
+        "view employee checkin" : "/api/resource/Employee Checkin?filters=[]&fields=[\"employee_name\", \"log_type\", \"time\", \"name\"]&limit=20&order_by=time desc",
+        "view timesheet" : "/api/resource/Timesheet?filters=[]&fields=[\"title\", \"status\", \"start_date\", \"total_billed_amount\", \"name\"]&limit=20"
     }
 
+    # System Dashboards
     system_dashboards = {
         "Dashboards": ['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']
     }
 
+    # System Insights
     system_insights = {
         "accounting insights": "What accounting insights do you need?",
         "purchasing insights": "What purchasing insights do you need?",
@@ -333,7 +464,7 @@ def chatbot_response(message, session_id, state_action=None):
         "stock insights": "What stock insights do you need?",
         "manufacturing insights": "What manufacturing insights do you need?",
         "projects insights": "What projects insights do you need?",
-        "hr insights": "What hr insights do you need?",
+        "hr insights": "What HR insights do you need?",
     }
 
     # For navigation requests, set to NAVIGATION mode
@@ -362,20 +493,64 @@ def chatbot_response(message, session_id, state_action=None):
         session_states[session_id] = STATES['NAVIGATION']
         new_docs = system_data_entry[normalized_message]
         return f"Which document do you want to add?\n"
-
+  
     # Check if it's a service API request
-    elif normalized_message in service_apis:
+    elif normalized_message in service_apis or normalized_message == "next":
+        # try to keep current API saved 
+        if normalized_message in service_apis:
+            if current_API is None:  # First time setting the API
+                current_API = normalized_message
+                placement = {"start": 0}
+            elif current_API != normalized_message:  # Change API explicitly
+                print(f"current_API changed from {current_API} to {normalized_message}")
+                current_API = normalized_message  # Update API if changed
+                placement = {"start": 0}  # Reset pagination when switching APIs
+        
+        
+        print("current_API: ", current_API)
+        
+        count = get_document_count(current_API)
+        
         try:
-            api_url = session['base_url'] + service_apis[normalized_message]
+            print("Fetching data from API:", current_API)
+            # API URL with pagination handling
+            api_url = session['base_url'] + service_apis[current_API]
+
+            if placement.get('start') > 0:
+                api_url += f"&limit_start={placement['start']}"
+                print(api_url)
+
             response = requests.get(api_url, headers=session['header'])
             response.raise_for_status()
             data = response.json()
-            
-            # Set state to DATA_ANALYSIS and keep it there
+
+            # Set session state to DATA_ANALYSIS
             session_states[session_id] = STATES['DATA_ANALYSIS']
-            return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
+
+            # Handle pagination scenarios
+            if count < 20:
+                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
+
+            elif count >= 20 and placement.get('start') == 0:
+                placement['start'] += 20
+                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the first 20 items. Type 'next' to see more."
+
+            elif count >= 20 and placement.get('start') < count:
+                print("start= ", placement.get('start'))
+                placement['start'] += 20
+                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the next 20 items. Type 'next' to see more."
+
+            elif count >= 20 and placement.get('start') >= count:
+                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the last items in the list."
+
+            else:
+                return "Unexpected condition reached."
             
+
+
         except requests.exceptions.RequestException as e:
+            if "403 Client Error: FORBIDDEN" in str(e):
+                return "You are not authorized to view this information. If you believe this is a mistake, please contact your administrator."
             return f"Error retrieving data: {str(e)}"
         
 
@@ -393,7 +568,7 @@ def chatbot_response(message, session_id, state_action=None):
     for subdivision, new_docs in system_data_entry.items():
         if normalized_message in [new_doc.lower() for new_doc in new_docs]:
             url = generate_url(normalized_message)
-            webbrowser.open(url)
+            #webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
         
     for subdivision, dashs in system_dashboards.items():
@@ -408,7 +583,7 @@ def chatbot_response(message, session_id, state_action=None):
         return get_ai_response(message, session_id, 'DATA_ANALYSIS')
 
     # Default case: process with AI in current state
-    return get_ai_response(message, session_id, 'NAVIGATION')
+    return "bot response    " + get_ai_response(message, session_id, 'NAVIGATION')
 
 
 
@@ -420,25 +595,25 @@ def login():
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
     try:
-        username = request.json.get("username")
+        email = request.json.get("email")
         password = request.json.get("password")
         
-        if username in user_credentials and user_credentials[username]["password"] == password:
+        if email in user_credentials and user_credentials[email]["password"] == password:
             # Make session permanent
             session.permanent = True
             
-            # Store the base_url, header, username, and role in the session
-            session['base_url'] = user_credentials[username]["base_url"]
-            session['header'] = user_credentials[username]["header"]
-            session['username'] = username
-            session['role'] = user_credentials[username]["role"]
+            # Store the base_url, header, email, and role in the session
+            session['base_url'] = user_credentials[email]["base_url"]
+            session['header'] = user_credentials[email]["header"]
+            session['email'] = email
+            session['role'] = user_credentials[email]["role"]
             
             # Ensure session is saved
             session.modified = True
             
             return jsonify({"success": True, "redirect": url_for('chatbot')})
         
-        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+        return jsonify({"success": False, "message": "Invalid email or password"}), 401
     except Exception as e:
         print(f"Authentication error: {str(e)}")  # For debugging
         return jsonify({"success": False, "message": "Authentication error"}), 500
@@ -469,12 +644,12 @@ def login_required(f):
 @app.before_request
 def before_request():
     # Check if we have a valid session
-    if 'username' in session:
+    if 'email' in session:
         # Refresh session data if needed
-        username = session['username']
-        if username in user_credentials:
-            session['base_url'] = user_credentials[username]["base_url"]
-            session['header'] = user_credentials[username]["header"]
+        email = session['email']
+        if email in user_credentials:
+            session['base_url'] = user_credentials[email]["base_url"]
+            session['header'] = user_credentials[email]["header"]
             session.modified = True
 
 @app.route("/chatbot")
@@ -519,6 +694,6 @@ def check_session():
         return jsonify({'status': 'valid'}), 200
     return jsonify({'status': 'invalid'}), 401
 
+
 if __name__ == "__main__":
     app.run(debug=True)
-    
