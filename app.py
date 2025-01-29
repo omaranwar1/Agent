@@ -583,7 +583,7 @@ def chatbot_response(message, session_id, state_action=None):
         return get_ai_response(message, session_id, 'DATA_ANALYSIS')
 
     # Default case: process with AI in current state
-    return "bot response    " + get_ai_response(message, session_id, 'NAVIGATION')
+    return get_ai_response(message, session_id, 'NAVIGATION')
 
 
 
