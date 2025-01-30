@@ -843,6 +843,7 @@
     <div id="quick-actions">
         <h3>Quick Actions</h3>
         <div class="quick-buttons">
+            <!-- Check if the user is an admin -->
             {% if session['role'] == 'admin' %}
                 <button onclick="handleServiceClick('Accounting')">Accounting</button>
                 <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
@@ -904,6 +905,7 @@
             <div id="breadcrumbs"></div>
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
+                    <!-- Greeting message -->
                     <p>Hey, I’m Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
                     <div id="service-buttons">
                         <!--<button onclick="handleServiceClick('place holer')">place holer</button>-->
@@ -926,7 +928,6 @@
     </div>
 
     <script>
-      /* All your JavaScript exactly as before */
       const breadcrumbs = ["Main menu"];
 
       /*****************************************************************/
@@ -1061,6 +1062,7 @@
             });
         }
 
+        // Handle service click checks if the user selected one of the pre defined services
         function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
             // Prevent multiple rapid clicks
             if (handleServiceClick.isProcessing) return;
@@ -1248,7 +1250,7 @@
                 });
         }
 
-
+        // Display sub-service options
       function displaySubServiceOptions(options, containerClass) {
           const chatBox = document.getElementById("chat-box");
           const subServiceOptions = document.createElement("div");
@@ -1269,6 +1271,7 @@
                  .replace(/\n/g, '<br>');  // Handle any newlines within the text
     }
 
+    // Process the message content
     function processMessageContent(message) {
       const lines = message.split('\n');
       const processedLines = [];
@@ -1377,7 +1380,7 @@
       return processedLines;
     }
 
-
+    // Display the message from the bot
     function displayMessage(message, className) {
       const chatBox = document.getElementById("chat-box");
       const messageDiv = document.createElement("div");
