@@ -14,10 +14,10 @@ from user_credentials import user_credentials  # Import credentials from the ext
 
 app = Flask(__name__)
 
-# Add a secret key for session management
+# secret key for session management
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key-here")  # In production, use a proper secret key
 
-# Add session configuration
+# session configuration
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -69,7 +69,7 @@ def generate_url_dashboards(input_string):
     dasboard_url = f"{session['base_url']}/app/dashboard-view/{dashboard}"
     return dasboard_url
 
-# Role-based navigation content
+# Role-based navigation content so each role has its own navigation list
 navigation_list = {
     "admin": """You are Ramzy, Eden ERP Assistant. You help users navigate through the Eden Assistant website and the underlying ERPNext system if the user needs help --all without explicitly stating that you're an "ERP assistant" or "ERP Data" or "ERPNext" refer to them as assistant website and system you are just an assitant to the user to help naviagte them. Your focus is solely on delivering value by addressing their needs seamlessly.
 
@@ -212,7 +212,7 @@ Remember:
 """
 }
 
-# Update the get_ai_response function to use role-based navigation content
+# function that gets the AI response from the Azure OpenAI API
 def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     if session_id not in chat_histories:
         chat_histories[session_id] = []
@@ -341,7 +341,8 @@ def get_document_count(normalized_message):
         print(f"Error getting document count: {str(e)}")
         return 0
 
-## fix for API pagination ####################
+
+# Global variables for API pagination
 global current_API 
 if 'current_API' not in globals():
     current_API = None  # Ensure current_API starts as None
@@ -354,7 +355,6 @@ if 'placement' not in globals():
 # Chatbot logic
 def chatbot_response(message, session_id, state_action=None):
 
-    #####################################################################
     global current_API, placement  # Ensure global variables are used
 
 
@@ -494,8 +494,11 @@ def chatbot_response(message, session_id, state_action=None):
         new_docs = system_data_entry[normalized_message]
         return f"Which document do you want to add?\n"
   
-    # Check if it's a service API request
+
+    # Check if it's a service API request and handels next
     elif normalized_message in service_apis or normalized_message == "next":
+
+        
         # try to keep current API saved 
         if normalized_message in service_apis:
             if current_API is None:  # First time setting the API
@@ -510,6 +513,9 @@ def chatbot_response(message, session_id, state_action=None):
         print("current_API: ", current_API)
         
         count = get_document_count(current_API)
+
+        # Set session state to DATA_ANALYSIS
+        session_states[session_id] = STATES['DATA_ANALYSIS']
         
         try:
             print("Fetching data from API:", current_API)
@@ -523,11 +529,9 @@ def chatbot_response(message, session_id, state_action=None):
             response = requests.get(api_url, headers=session['header'])
             response.raise_for_status()
             data = response.json()
+            
 
-            # Set session state to DATA_ANALYSIS
-            session_states[session_id] = STATES['DATA_ANALYSIS']
-
-            # Handle pagination scenarios
+            # Handle pagination scenarios (next)
             if count <= 20:
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
 
@@ -540,14 +544,16 @@ def chatbot_response(message, session_id, state_action=None):
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the next 20 items. Type 'next' to see more."
 
             elif count >= 20 and placement.get('start') >= count-20:
+                placement['start'] = 0
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the last items in the list."
 
             else:
                 return "Unexpected condition reached."
             
 
-
+        # Handle API errors 
         except requests.exceptions.RequestException as e:
+            # Handle trying to access a resource that the user is not authorized to view
             if "403 Client Error: FORBIDDEN" in str(e):
                 return "You are not authorized to view this information. If you believe this is a mistake, please contact your administrator."
             return f"Error retrieving data: {str(e)}"
@@ -570,6 +576,7 @@ def chatbot_response(message, session_id, state_action=None):
             #webbrowser.open(url)
             return f"iframe::{url}"  # Return a special message indicating iframe content
         
+    # check if the message corresponds to a specific dashboard
     for subdivision, dashs in system_dashboards.items():
         if normalized_message in [dash.lower() for dash in dashs]:
             url = generate_url_dashboards(normalized_message)
@@ -594,6 +601,7 @@ def login():
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
     try:
+        # Get the email and password from the request
         email = request.json.get("email")
         password = request.json.get("password")
         
@@ -621,6 +629,7 @@ def authenticate():
 def home():
     return redirect(url_for('login'))
 
+# Login required decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -640,6 +649,7 @@ def login_required(f):
             return redirect(url_for('login'))
     return decorated_function
 
+# Refresh session data if needed
 @app.before_request
 def before_request():
     # Check if we have a valid session
@@ -651,6 +661,7 @@ def before_request():
             session['header'] = user_credentials[email]["header"]
             session.modified = True
 
+# Route for the chatbot
 @app.route("/chatbot")
 @login_required
 def chatbot():
@@ -664,6 +675,7 @@ def get_response():
     response = chatbot_response(user_message,session_id)
     return jsonify({"response": response})
 
+# Route for clearing the chat history
 @app.route("/clear_history", methods=["POST"])
 def clear_history():
     session_id = request.json.get("session_id", "default")
@@ -674,6 +686,7 @@ def clear_history():
         session_states[session_id] = STATES['NAVIGATION']
     return jsonify({"status": "success", "message": "Chat history cleared"})
 
+# Route for resetting the state
 @app.route("/reset_state", methods=["POST"])
 def reset_state():
     session_id = request.json.get("session_id", "default")
@@ -682,11 +695,13 @@ def reset_state():
         session_states[session_id] = STATES['NAVIGATION']
     return jsonify({"status": "success", "message": "State reset to navigation"})
 
+# Route for logging out
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# Route for checking the session
 @app.route('/check_session')
 def check_session():
     if 'base_url' in session and 'header' in session:
@@ -694,6 +709,6 @@ def check_session():
     return jsonify({'status': 'invalid'}), 401
 
 
+# Run the app
 if __name__ == "__main__":
     app.run(debug=True)
-    
