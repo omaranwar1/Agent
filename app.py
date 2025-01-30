@@ -229,7 +229,7 @@ def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     system_messages = {
         STATES['NAVIGATION']: {
             "role": "system",
-            "content": navigation_list.get(session.get('role', 'General'))  # Get role-specific content or default to admin
+            "content": navigation_list.get(session.get('role', 'General'), navigation_list["General"])
         },
         STATES['DATA_ANALYSIS']: {
             "role": "system",
@@ -528,19 +528,18 @@ def chatbot_response(message, session_id, state_action=None):
             session_states[session_id] = STATES['DATA_ANALYSIS']
 
             # Handle pagination scenarios
-            if count < 20:
+            if count <= 20:
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
 
-            elif count >= 20 and placement.get('start') == 0:
+            elif count > 20 and placement.get('start') == 0:
                 placement['start'] += 20
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the first 20 items. Type 'next' to see more."
 
-            elif count >= 20 and placement.get('start') < count:
-                print("start= ", placement.get('start'))
+            elif count >= 20 and placement.get('start') < count-20:
                 placement['start'] += 20
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the next 20 items. Type 'next' to see more."
 
-            elif count >= 20 and placement.get('start') >= count:
+            elif count >= 20 and placement.get('start') >= count-20:
                 return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the last items in the list."
 
             else:
@@ -697,3 +696,4 @@ def check_session():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
