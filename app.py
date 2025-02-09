@@ -738,6 +738,11 @@ def before_request():
             session['header'] = user_credentials[email]["header"]
             session.modified = True
 
+    # Add this helper function to check if request is AJAX
+    def is_xhr():
+        return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    request.is_xhr = is_xhr()
+
 # Route for the chatbot
 @app.route("/chatbot")
 @login_required
@@ -788,60 +793,53 @@ def check_session():
 # Add new route to handle language switching
 @app.route("/switch_language", methods=["POST"])
 def switch_language():
-    """Handle language switching with detailed logging"""
-    print("\n=== Language Switch Request ===")
-    print(f"Request Method: {request.method}")
-    print(f"Request Headers: {dict(request.headers)}")
-    print(f"Request Data: {request.get_json()}")
-    print(f"Current Session: {dict(session)}")
+    """Handle language switching with improved error handling and session management"""
+    if not request.is_xhr:
+        return jsonify({"success": False, "message": "Invalid request"}), 400
 
     try:
-        # Get and validate the new language
         data = request.get_json()
         if not data:
-            print("Error: No JSON data received")
             return jsonify({"success": False, "message": "No data received"}), 400
 
         new_language = data.get("language")
-        print(f"Requested new language: {new_language}")
-
-        # Validate language choice
         valid_languages = ['en', 'ar', 'franco']
+        
         if new_language not in valid_languages:
-            print(f"Error: Invalid language {new_language}")
             return jsonify({
                 "success": False,
                 "message": f"Invalid language. Must be one of: {', '.join(valid_languages)}"
             }), 400
 
-        # Store old language for logging
-        old_language = session.get('language', 'en')
-        print(f"Changing language from {old_language} to {new_language}")
-
-        # Update session
+        # Store the current session data
+        current_session_data = dict(session)
+        
+        # Update language in session
         session['language'] = new_language
+        
+        # Ensure all other session data remains intact
+        for key in current_session_data:
+            if key != 'language':
+                session[key] = current_session_data[key]
+        
         session.modified = True
-        print(f"Updated session: {dict(session)}")
 
-        # Return success response
-        response_data = {
+        # Clear chat history for the user
+        session_id = "default"
+        if session_id in chat_histories:
+            chat_histories[session_id] = []
+        
+        return jsonify({
             "success": True,
             "message": "Language switched successfully",
-            "old_language": old_language,
-            "new_language": new_language,
-            "session_language": session.get('language')
-        }
-        print(f"Sending response: {response_data}")
-        return jsonify(response_data)
+            "language": session['language']
+        })
 
     except Exception as e:
         print(f"Error in switch_language: {str(e)}")
         import traceback
         print(traceback.format_exc())
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    finally:
-        print("=== End Language Switch Request ===\n")
+        return jsonify({"success": False, "message": "Server error occurred"}), 500
 
 # Run the app
 if __name__ == "__main__":

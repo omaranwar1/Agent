@@ -1589,84 +1589,82 @@
       // Add this at the start of your body tag to store session data
       const userRole = "{{ session['role'] }}";
 
-      // Update the language switch function
+      // Update the language switch function for better reliability
       async function switchLanguage(language) {
-          console.log(`Attempting to switch to language: ${language}`);
-          
+          // Prevent multiple clicks
+          if (window.isLanguageSwitching) return;
+          window.isLanguageSwitching = true;
+
           try {
-              // Update button states first
-              document.querySelectorAll('.lang-btn').forEach(btn => {
-                  btn.classList.remove('active');
-                  console.log(`Removed active class from ${btn.id}`);
+              // Disable all buttons and show visual feedback
+              const buttons = document.querySelectorAll('.lang-btn');
+              buttons.forEach(btn => {
+                  btn.disabled = true;
+                  btn.style.opacity = '0.5';
               });
-              
-              const activeBtn = document.getElementById(`${language}-btn`);
-              if (activeBtn) {
-                  activeBtn.classList.add('active');
-                  console.log(`Added active class to ${language}-btn`);
-              }
 
               // Make the API call
-              console.log('Sending language switch request...');
               const response = await fetch('/switch_language', {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
+                      'X-Requested-With': 'XMLHttpRequest'
                   },
-                  body: JSON.stringify({ language: language })
+                  body: JSON.stringify({ language: language }),
+                  credentials: 'same-origin'
               });
 
-              console.log('Received response:', response.status);
-              const data = await response.json();
-              console.log('Response data:', data);
+              if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+              }
 
+              const data = await response.json();
+              
               if (data.success) {
-                  console.log('Language switch successful, clearing history...');
+                  // Clear chat history
                   await fetch('/clear_history', {
                       method: 'POST',
                       headers: {
                           'Content-Type': 'application/json',
+                          'X-Requested-With': 'XMLHttpRequest'
                       },
-                      body: JSON.stringify({ session_id: 'default' })
+                      body: JSON.stringify({ session_id: 'default' }),
+                      credentials: 'same-origin'
                   });
 
-                  console.log('History cleared, reloading page...');
-                  window.location.reload();
+                  // Force a clean reload
+                  window.location.href = window.location.pathname + '?lang=' + language;
               } else {
                   throw new Error(data.message || 'Language switch failed');
               }
 
           } catch (error) {
-              console.error('Error in language switch:', error);
-              // Revert button state on error
-              const currentLanguage = "{{ session.get('language', 'en') }}";
-              document.querySelectorAll('.lang-btn').forEach(btn => {
-                  btn.classList.remove('active');
+              console.error('Language switch error:', error);
+              alert('Failed to switch language. Please try again.');
+              
+              // Reset buttons
+              const buttons = document.querySelectorAll('.lang-btn');
+              buttons.forEach(btn => {
+                  btn.disabled = false;
+                  btn.style.opacity = '1';
               });
-              const currentBtn = document.getElementById(`${currentLanguage}-btn`);
-              if (currentBtn) {
-                  currentBtn.classList.add('active');
-              }
+              
+          } finally {
+              window.isLanguageSwitching = false;
           }
       }
 
       // Initialize language buttons on page load
       document.addEventListener('DOMContentLoaded', function() {
           const currentLanguage = "{{ session.get('language', 'en') }}";
-          console.log('Initializing with language:', currentLanguage);
           
+          // Set active state for current language
           document.querySelectorAll('.lang-btn').forEach(btn => {
               btn.classList.remove('active');
-              console.log(`Initial cleanup of ${btn.id}`);
+              if (btn.id === `${currentLanguage}-btn`) {
+                  btn.classList.add('active');
+              }
           });
-          
-          const activeBtn = document.getElementById(`${currentLanguage}-btn`);
-          if (activeBtn) {
-              activeBtn.classList.add('active');
-              console.log(`Set initial active button: ${activeBtn.id}`);
-          } else {
-              console.error(`Could not find button for language: ${currentLanguage}`);
-          }
       });
     </script>
 </body>
