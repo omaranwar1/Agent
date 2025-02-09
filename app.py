@@ -9,7 +9,8 @@ from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from functools import wraps
 from datetime import datetime, timedelta
-from user_credentials import user_credentials  # Import credentials from the external file
+from user_credentials import user_credentials  # Import credentials from the same directory
+from eden_language_prompts import language_prompts  # Import language prompts
 
 
 app = Flask(__name__)
@@ -26,8 +27,8 @@ app.config.update(
 )
 
 # Azure OpenAI Configuration
-endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.openai.azure.com/")
-deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")
+endpoint = os.getenv("ENDPOINT_URL", "https://ai-moustafaawad6281ai930228111241.services.ai.azure.com")
+deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini-2")
 subscription_key = os.getenv("AZURE_OPENAI_API_KEY", "22jtOiYXuu43EctfKGvEQCKYqtS6t4EVZMjp0Hn4HErT5dmmMUFvJQQJ99BAACHYHv6XJ3w3AAAAACOGOeyL")
 
 # Initialize Azure OpenAI client with API key
@@ -225,15 +226,13 @@ def get_ai_response(user_message, session_id, state_action=None, api_data=None):
     if state_action:
         session_states[session_id] = STATES.get(state_action, STATES['NAVIGATION'])
 
-    # Define the two system messages
-    system_messages = {
-        STATES['NAVIGATION']: {
-            "role": "system",
-            "content": navigation_list.get(session.get('role', 'General'), navigation_list["General"])
-        },
-        STATES['DATA_ANALYSIS']: {
-            "role": "system",
-            "content": """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided --all without explicitly stating that you're an "ERP assistant" or "ERP Data" you are just an assitant to the user to help them with their data. Your focus is solely on delivering value by addressing their needs seamlessly.
+    # Get the current language from session
+    current_language = session.get('language', 'franco')
+    navigation_list_key = f"navigation_list_{current_language}"
+
+    # Define the two system messages with language support
+    data_analysis_prompts = {
+        'en': """You're Ramzy an Eden ERP assistant. Your goal is to help users understand their ERP data by summarizing it in a simple, readable way or providing meaningful insights based on their queries and the JSON data provided --all without explicitly stating that you're an "ERP assistant" or "ERP Data" you are just an assitant to the user to help them with their data. Your focus is solely on delivering value by addressing their needs seamlessly.
 
 ### Here's How You Respond:
 1. **Understand the Query**:
@@ -257,10 +256,104 @@ def get_ai_response(user_message, session_id, state_action=None, api_data=None):
    - If the data or query is unclear or incomplete, ask for clarification. Never make up information to fill in the gaps.
 
 7. **Currencies Are in EGP Unless Stated Otherwise**:
-   - For all monetary data, assume the currency is EGP unless specified otherwise.
+   - For all monetary data, assume the currency is EGP unless specified otherwise.""",
+        
+        'ar': """إنت رامزي، مساعد في Eden ERP، وهدفك إنك تساعد المستخدمين يفهموا بياناتهم بشكل بسيط ومفيد من غير ما تذكر إنك "مساعد ERP" أو "بيانات ERP" بشكل صريح. إنت مجرد مساعد بتمكن المستخدم من التعامل مع بياناته بسهولة وتوفر له المعلومات اللي محتاجها بسلاسة.
 
-8. **Prioritize Accuracy**:
-   - Always double-check your calculations. Clearly indicate the source of the numbers or trends you mention, ensuring that users understand how you derived them."""
+إزاي ترد على المستخدم؟
+1. افهم السؤال كويس:
+   - المستخدم بيسأل عن إيه بالظبط؟ عاوز ملخص للبيانات؟ بيدور على أرقام إجمالية، اتجاهات، أو تحليل معين؟ ركّز على إجابة السؤال باستخدام البيانات المتاحة بس.
+
+2. اعرض البيانات بشكل واضح:
+   - لو مطلوب عرض البيانات، خليك بسيط وسهل. استخدم نقط أو فقرات قصيرة. وضّح أهم التفاصيل زي الإجماليات، الحالات، أو أي أرقام مهمة موجودة في البيانات.
+
+3. اتأكد من الأرقام والمعلومات:
+   - استخدم الأرقام والمعلومات المتوفرة في البيانات بس.
+   - ما تفترضش أرقام أو تكمل بيانات ناقصة من عندك.
+   - لو البيانات غير كافية للإجابة، قل للمستخدم: "البيانات المتاحة مش كفاية للإجابة بشكل دقيق، ممكن توضح أكتر أو تضيف تفاصيل إضافية؟"
+
+4. قدّم تحليلات لو الطلب واضح:
+   - لو المستخدم بيسأل "ليه؟" أو "المعنى إيه؟"، حلل البيانات المتاحة عشان تحدد الاتجاهات أو الأنماط، لكن دايماً اعتمد على بيانات واضحة ومتاحة.
+
+5. اتكلم بشكل طبيعي وبسيط:
+   - كأنك بتتكلم مع زميلك، خليك لطيف ومحترف في نفس الوقت.
+
+6. اتعامل مع النواقص بذكاء:
+   - لو البيانات أو السؤال مش واضح، اطلب توضيح من غير ما تخمّن أو تفترض أي حاجة مش موجودة.
+
+7. العملة الافتراضية هي الجنيه المصري (EGP) إلا لو المستخدم قال غير كده:
+   - أي بيانات مالية، اعتبر إن العملة هي الجنيه المصري تلقائيًا لو المستخدم ما حددش عملة تانية.
+
+8. الأولوية للدقة:
+   - راجع حساباتك كويس، ووضح للمستخدم مصدر أي أرقام أو تحليلات عشان يبقى فاهم إنت وصلت للنتائج دي إزاي
+
+ملحوظة مهمة: رد دايماً باللهجة المصرية العامية، واستخدم تعبيرات زي:
+- "عايز" بدل "تريد"
+- "إيه" بدل "ماذا"
+- "إزاي" بدل "كيف"
+- "فين" بدل "أين"
+- "ليه" بدل "لماذا"
+- "دي/ده" بدل "هذه/هذا"
+- "كده" بدل "هكذا"
+- "عشان" بدل "لأن"
+- "بتاع" بدل "خاص ب"
+واستخدم الكلمات والتعبيرات اللي المصريين بيستخدموها في حياتهم اليومية.""",
+'franco': """Ana Ramzy, el assistant beta3ak. Tab bs 5alina net2abel b shakl kwayes. Ana hena 3ashan asa3dak tefham el data beta3tak w a7lelhalek b tare2a sahla w mofhoma -- men 8er laff w dawaran wala kalam ketir.
+
+Ezay ha5dem m3ak:
+1. **Awel 7aga, lazem afham enta 3ayez eh bezabt**:
+   - 3ayez summary? Wala 3ayez ne3raf el trends? Wala 3andak rakam mo3ayan 3ayez tef4a7o?
+   - Ay so2al 3andak, ana hagaweb 3aleh men el data elly 3andy bas.
+
+2. **Lama a3redlak el data**:
+   - Ha5aleha wadda7a w mafhooma.
+   - Ha7othalek fe bullet points 3ashan teb2a easy fel reading.
+   - El arkam el mohema, zay el totals wel status, di hat4ofha 3ala tool.
+
+3. **El arkam wel ma3lomat**:
+   - Kol 7aga ha2olhalek hateb2a men el data elly 3andy.
+   - **Mesh ha5tere3 wala ha5amen 7aga men dema8y 5ales.**
+   - Law mesh la2y el data elly te5aliny agaweb, ha2olak b sara7a: "M3lsh, el data elly 3andy mesh kafya. Momken tewada7ly aktar?"
+
+4. **Law 3ayez ta7lil mo3ayan**:
+   - Law sa2alt "leh?" wala "ya3ny eh?", ha7awel afaserlak el sabab men el data elly mawgooda.
+   - Kol el ta7lil hayeb2a mabniy 3ala ar2am w ma3lomat 7a2i2ya.
+
+5. **El kalam hayeb2a zay ma bnet2abel fel shoghl**:
+   - Mesh ha3a2ad el kalam wala ha3mel feha professor.
+   - Straight to the point w professional fel nafs el wa2t.
+
+6. **Law fih 7aga mesh wadda7a**:
+   - Mesh hat7erg - es2al براحتك.
+   - Ana mesh ba7eb el 8omood - fa law mesh fahem 7aga ha2olak 3ala tool.
+
+7. **Bos ba2a - kol el arkam bel geneh el masry**:
+   - Ela law enta 2olt 8er keda, kol el feloos bel EGP.
+
+8. **El dek2a aham 7aga**:
+   - Kol rakam ha2olholk, ha2olak geh mnein.
+   - Kol ta7lil ha3melo, ha2olak 3amalto ezay.
+
+A5er 7aga - 5aleek faker:
+- El ta7leel hayeb2a mofhom w baseet
+- Kol 7aga ha2olha mabneyya 3ala data mawgooda
+- Mesh baza3'wat wala ba5tere3 7aga men 3andy
+- Law me7tag ay tawde7, 2ol w ana ma3ak
+- El trends wel patterns ha7awel awadda7halk b amtela men el data
+
+Yalla bena - ana ma3ak w t7t amrak 👍"""
+
+    }
+
+    system_messages = {
+        STATES['NAVIGATION']: {
+            "role": "system",
+            "content": language_prompts[navigation_list_key].get(session.get('role', 'General'), 
+                                                               language_prompts[navigation_list_key]["General"])
+        },
+        STATES['DATA_ANALYSIS']: {
+            "role": "system",
+            "content": data_analysis_prompts[current_language]
         }
     }
 
@@ -495,69 +588,58 @@ def chatbot_response(message, session_id, state_action=None):
         return f"Which document do you want to add?\n"
   
 
-    # Check if it's a service API request and handels next
+    # Check if it's a service API request or a pagination request ("next")
     elif normalized_message in service_apis or normalized_message == "next":
+        # If the message is not "next", then it is an explicit API request.
+        if normalized_message != "next":
+            # Set the current API and reset pagination.
+            current_API = normalized_message
+            placement = {"start": 0}
+        # (If the message is "next", we keep the current_API and placement.)
 
-        
-        # try to keep current API saved 
-        if normalized_message in service_apis:
-            if current_API is None:  # First time setting the API
-                current_API = normalized_message
-                placement = {"start": 0}
-            elif current_API != normalized_message:  # Change API explicitly
-                print(f"current_API changed from {current_API} to {normalized_message}")
-                current_API = normalized_message  # Update API if changed
-                placement = {"start": 0}  # Reset pagination when switching APIs
-        
-        
-        print("current_API: ", current_API)
-        
+        # Get the total count for the current API's documents
         count = get_document_count(current_API)
-
-        # Set session state to DATA_ANALYSIS
-        session_states[session_id] = STATES['DATA_ANALYSIS']
+        
+        # Build the API URL, appending the pagination parameter if needed.
+        api_url = session['base_url'] + service_apis[current_API]
+        if placement.get('start', 0) > 0:
+            api_url += f"&limit_start={placement['start']}"
         
         try:
             print("Fetching data from API:", current_API)
-            # API URL with pagination handling
-            api_url = session['base_url'] + service_apis[current_API]
-
-            if placement.get('start') > 0:
-                api_url += f"&limit_start={placement['start']}"
-                print(api_url)
-
+            print("API URL:", api_url)
             response = requests.get(api_url, headers=session['header'])
             response.raise_for_status()
             data = response.json()
-            
-
-            # Handle pagination scenarios (next)
-            if count <= 20:
-                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
-
-            elif count > 20 and placement.get('start') == 0:
-                placement['start'] += 20
-                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the first 20 items. Type 'next' to see more."
-
-            elif count >= 20 and placement.get('start') < count-20:
-                placement['start'] += 20
-                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the next 20 items. Type 'next' to see more."
-
-            elif count >= 20 and placement.get('start') >= count-20:
-                placement['start'] = 0
-                return get_ai_response(message, session_id, 'DATA_ANALYSIS', data) + "  These are the last items in the list."
-
-            else:
-                return "Unexpected condition reached."
-            
-
-        # Handle API errors 
         except requests.exceptions.RequestException as e:
-            # Handle trying to access a resource that the user is not authorized to view
             if "403 Client Error: FORBIDDEN" in str(e):
                 return "You are not authorized to view this information. If you believe this is a mistake, please contact your administrator."
             return f"Error retrieving data: {str(e)}"
         
+        # Determine the appropriate message suffix and update pagination.
+        # Assume each page shows 20 items.
+        current_page_start = placement.get('start', 0)
+        next_page_start = current_page_start + 20
+        
+        # If the total count is less than or equal to 20, no pagination is needed.
+        if count <= 20:
+            message_suffix = ""
+            # Reset pagination so a new explicit request will start at 0.
+            placement['start'] = 0
+        # If there are more items beyond this page:
+        elif next_page_start < count:
+            message_suffix = f" These are items {current_page_start + 1} to {next_page_start}. Type 'next' to see more."
+            placement['start'] = next_page_start
+        else:
+            # This is the last page.
+            message_suffix = " These are the last items in the list."
+            placement['start'] = 0
+
+        # Set session state to DATA_ANALYSIS and get the AI response with the API data.
+        session_states[session_id] = STATES['DATA_ANALYSIS']
+        ai_reply = get_ai_response(message, session_id, 'DATA_ANALYSIS', data)
+        return ai_reply + message_suffix
+
 
 
     # Check if the message corresponds to a specific report
@@ -601,28 +683,23 @@ def login():
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
     try:
-        # Get the email and password from the request
         email = request.json.get("email")
         password = request.json.get("password")
         
         if email in user_credentials and user_credentials[email]["password"] == password:
-            # Make session permanent
             session.permanent = True
-            
-            # Store the base_url, header, email, and role in the session
             session['base_url'] = user_credentials[email]["base_url"]
             session['header'] = user_credentials[email]["header"]
             session['email'] = email
             session['role'] = user_credentials[email]["role"]
-            
-            # Ensure session is saved
+            session['language'] = 'en'  # Add default language setting
             session.modified = True
             
             return jsonify({"success": True, "redirect": url_for('chatbot')})
         
         return jsonify({"success": False, "message": "Invalid email or password"}), 401
     except Exception as e:
-        print(f"Authentication error: {str(e)}")  # For debugging
+        print(f"Authentication error: {str(e)}")
         return jsonify({"success": False, "message": "Authentication error"}), 500
 
 @app.route("/")
@@ -708,6 +785,63 @@ def check_session():
         return jsonify({'status': 'valid'}), 200
     return jsonify({'status': 'invalid'}), 401
 
+# Add new route to handle language switching
+@app.route("/switch_language", methods=["POST"])
+def switch_language():
+    """Handle language switching with detailed logging"""
+    print("\n=== Language Switch Request ===")
+    print(f"Request Method: {request.method}")
+    print(f"Request Headers: {dict(request.headers)}")
+    print(f"Request Data: {request.get_json()}")
+    print(f"Current Session: {dict(session)}")
+
+    try:
+        # Get and validate the new language
+        data = request.get_json()
+        if not data:
+            print("Error: No JSON data received")
+            return jsonify({"success": False, "message": "No data received"}), 400
+
+        new_language = data.get("language")
+        print(f"Requested new language: {new_language}")
+
+        # Validate language choice
+        valid_languages = ['en', 'ar', 'franco']
+        if new_language not in valid_languages:
+            print(f"Error: Invalid language {new_language}")
+            return jsonify({
+                "success": False,
+                "message": f"Invalid language. Must be one of: {', '.join(valid_languages)}"
+            }), 400
+
+        # Store old language for logging
+        old_language = session.get('language', 'en')
+        print(f"Changing language from {old_language} to {new_language}")
+
+        # Update session
+        session['language'] = new_language
+        session.modified = True
+        print(f"Updated session: {dict(session)}")
+
+        # Return success response
+        response_data = {
+            "success": True,
+            "message": "Language switched successfully",
+            "old_language": old_language,
+            "new_language": new_language,
+            "session_language": session.get('language')
+        }
+        print(f"Sending response: {response_data}")
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"Error in switch_language: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        print("=== End Language Switch Request ===\n")
 
 # Run the app
 if __name__ == "__main__":

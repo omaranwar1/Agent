@@ -59,6 +59,27 @@
         margin-bottom: 10px;
     }
 
+    /*////////////////////////////////////////////////////////////////////*/
+    /* Style for the close button in the iframe container */
+    .iframe-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1100; /* Ensure it appears above the iframe */
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    }
+
+    .iframe-close-btn:hover {
+    background-color: #cc0000;
+    }
+
+    /*////////////////////////////////////////////////////////////////////*/
+
 
     /* Message styles */
     .message {
@@ -763,71 +784,50 @@
         }
     }
 
-    /* Add hamburger button styles */
-    .hamburger-btn {
-        display: none;  /* Hidden by default on desktop */
+    /* Update language switch styling */
+    .language-switch {
         position: fixed;
-        left: 10px;
-        top: 5px;
-        z-index: 1001;
-        background: #4797ed;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 8px 12px;
-        font-size: 20px;
+        top: 20px;
+        left: 150px; /* Position after the logo */
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+    }
+
+    .lang-btn {
+        padding: 6px 12px;
+        border: 1px solid #4797ed;
+        background-color: white;
+        color: #4797ed;
+        border-radius: 15px;
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        font-size: 14px;
+        transition: all 0.3s ease;
+        min-width: 40px;
     }
 
-    .hamburger-btn:hover {
-        background: #0056b3;
+    .lang-btn:hover {
+        background-color: #4797ed;
+        color: white;
     }
 
-    /* Modify quick-actions for mobile */
+    .lang-btn.active {
+        background-color: #4797ed;
+        color: white;
+    }
+
+    /* Mobile responsiveness */
     @media screen and (max-width: 768px) {
-        .hamburger-btn {
-            display: block;  /* Show on mobile */
+        .language-switch {
+            left: auto;
+            right: 20px;
+            top: 15px;
         }
 
-        #quick-actions {
-            display: none;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 80%;
-            height: 100vh;
-            background-color: #f5f5f5;
-            z-index: 1000;
-            padding: 60px 15px 15px 15px; /* Added top padding for hamburger button */
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
-        }
-
-        #quick-actions.active {
-            display: block;
-        }
-
-        /* Add overlay for when menu is open */
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-        }
-
-        .menu-overlay.active {
-            display: block;
-        }
-
-        /* Adjust container margin for mobile */
-        #container {
-            margin-left: 0 !important;
-            width: 100% !important;
+        .lang-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 35px;
         }
     }
   </style>
@@ -906,7 +906,7 @@
             <div id="chat-box">
                 <div id="greeting" class="greeting-message">
                     <!-- Greeting message -->
-                    <p>Hey, I’m Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
+                    <p>Hey, I'm Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
                     <div id="service-buttons">
                         <!--<button onclick="handleServiceClick('place holer')">place holer</button>-->
                     </div>
@@ -923,8 +923,17 @@
 
         <!-- The iframe container is hidden initially -->
         <div id="iframe-container">
+            <!-- Close button overlay -->
+            <button class="iframe-close-btn" onclick="closeIframe()">Close</button>
             <iframe id="report-iframe" src="" frameborder="0"></iframe>
         </div>
+    </div>
+
+    <!-- Move the language switch buttons near the logo -->
+    <div class="language-switch">
+        <button onclick="switchLanguage('en')" id="en-btn" class="lang-btn">EN</button>
+        <button onclick="switchLanguage('ar')" id="ar-btn" class="lang-btn">ع</button>
+        <button onclick="switchLanguage('franco')" id="franco-btn" class="lang-btn">FR</button>
     </div>
 
     <script>
@@ -957,7 +966,7 @@
 
             // Handle iframe loading errors
             iframe.onload = () => {
-                displayMessage("Please find item in the next window", 'bot-message');
+                displayMessage("Please find requested item in the next window", 'bot-message');
             };
 
             iframe.onerror = () => {
@@ -1481,7 +1490,7 @@
               greeting.id = 'greeting';
               greeting.className = 'greeting-message';
               greeting.innerHTML = `
-                  <p> Hey, I’m Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
+                  <p> Hey, I'm Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
                   <div id="service-buttons">
                       <!--<button onclick="handleServiceClick('Place holder')">place holder</button>-->
                   </div>
@@ -1567,8 +1576,98 @@
           }
       });
 
+      // function to close iframe 
+      function closeIframe() {
+            // Hide the iframe container
+            const iframeContainer = document.getElementById('iframe-container');
+            iframeContainer.style.display = 'none';
+            // Remove the class that adjusted the layout
+            document.getElementById('container').classList.remove('chat-with-iframe');
+        }
+
+
       // Add this at the start of your body tag to store session data
       const userRole = "{{ session['role'] }}";
+
+      // Update the language switch function
+      async function switchLanguage(language) {
+          console.log(`Attempting to switch to language: ${language}`);
+          
+          try {
+              // Update button states first
+              document.querySelectorAll('.lang-btn').forEach(btn => {
+                  btn.classList.remove('active');
+                  console.log(`Removed active class from ${btn.id}`);
+              });
+              
+              const activeBtn = document.getElementById(`${language}-btn`);
+              if (activeBtn) {
+                  activeBtn.classList.add('active');
+                  console.log(`Added active class to ${language}-btn`);
+              }
+
+              // Make the API call
+              console.log('Sending language switch request...');
+              const response = await fetch('/switch_language', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ language: language })
+              });
+
+              console.log('Received response:', response.status);
+              const data = await response.json();
+              console.log('Response data:', data);
+
+              if (data.success) {
+                  console.log('Language switch successful, clearing history...');
+                  await fetch('/clear_history', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ session_id: 'default' })
+                  });
+
+                  console.log('History cleared, reloading page...');
+                  window.location.reload();
+              } else {
+                  throw new Error(data.message || 'Language switch failed');
+              }
+
+          } catch (error) {
+              console.error('Error in language switch:', error);
+              // Revert button state on error
+              const currentLanguage = "{{ session.get('language', 'en') }}";
+              document.querySelectorAll('.lang-btn').forEach(btn => {
+                  btn.classList.remove('active');
+              });
+              const currentBtn = document.getElementById(`${currentLanguage}-btn`);
+              if (currentBtn) {
+                  currentBtn.classList.add('active');
+              }
+          }
+      }
+
+      // Initialize language buttons on page load
+      document.addEventListener('DOMContentLoaded', function() {
+          const currentLanguage = "{{ session.get('language', 'en') }}";
+          console.log('Initializing with language:', currentLanguage);
+          
+          document.querySelectorAll('.lang-btn').forEach(btn => {
+              btn.classList.remove('active');
+              console.log(`Initial cleanup of ${btn.id}`);
+          });
+          
+          const activeBtn = document.getElementById(`${currentLanguage}-btn`);
+          if (activeBtn) {
+              activeBtn.classList.add('active');
+              console.log(`Set initial active button: ${activeBtn.id}`);
+          } else {
+              console.error(`Could not find button for language: ${currentLanguage}`);
+          }
+      });
     </script>
 </body>
 </html>
