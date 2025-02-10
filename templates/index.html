@@ -830,6 +830,100 @@
             min-width: 35px;
         }
     }
+
+    /* RTL Support for Arabic Language - Text Only */
+    [dir="rtl"] .bot-message,
+    .bot-message[lang="ar"] {
+        text-align: right;
+        direction: rtl;
+    }
+
+    [dir="rtl"] .user-message,
+    .user-message[lang="ar"] {
+        text-align: right;
+        direction: rtl;
+    }
+
+    /* RTL adjustments for message containers */
+    [dir="rtl"] .message,
+    .message[lang="ar"] {
+        font-family: 'Arial', 'Helvetica', sans-serif;  /* Use Arabic-friendly font */
+    }
+
+    /* RTL adjustments for headers */
+    [dir="rtl"] .bot-message .header-1,
+    [dir="rtl"] .bot-message .header-2,
+    [dir="rtl"] .bot-message .header-3,
+    [dir="rtl"] .bot-message .header-4,
+    .bot-message[lang="ar"] .header-1,
+    .bot-message[lang="ar"] .header-2,
+    .bot-message[lang="ar"] .header-3,
+    .bot-message[lang="ar"] .header-4 {
+        text-align: right;
+        padding-right: 10px;
+        padding-left: 0;
+    }
+
+    /* RTL adjustments for lists */
+    [dir="rtl"] .bot-message ul,
+    [dir="rtl"] .bot-message ol,
+    .bot-message[lang="ar"] ul,
+    .bot-message[lang="ar"] ol {
+        text-align: right;
+    }
+
+    /* RTL adjustments for blockquotes */
+    [dir="rtl"] .bot-message .blockquote,
+    .bot-message[lang="ar"] .blockquote {
+        text-align: right;
+    }
+
+    /* RTL adjustments for code blocks */
+    [dir="rtl"] .bot-message .code-block,
+    .bot-message[lang="ar"] .code-block {
+        direction: ltr; /* Keep code blocks left-to-right */
+        text-align: left;
+    }
+
+    /* RTL adjustments for inline code */
+    [dir="rtl"] .bot-message .inline-code,
+    .bot-message[lang="ar"] .inline-code {
+        direction: ltr; /* Keep inline code left-to-right */
+        unicode-bidi: embed;
+    }
+
+    /* Remove RTL adjustments for breadcrumbs to keep them left-aligned */
+    [dir="rtl"] #breadcrumbs {
+        text-align: left;
+        direction: ltr;
+    }
+
+    /* Ensure consistent menu positioning for both LTR and RTL */
+    [dir="rtl"] #service-buttons,
+    [dir="rtl"] .sub-service-buttons,
+    [lang="ar"] #service-buttons,
+    [lang="ar"] .sub-service-buttons {
+        display: flex;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        justify-content: flex-start !important;
+    }
+
+    [dir="rtl"] #service-buttons button,
+    [dir="rtl"] .sub-service-buttons button,
+    [lang="ar"] #service-buttons button,
+    [lang="ar"] .sub-service-buttons button {
+        margin: 0 0 10px 10px !important;
+        float: none !important;
+    }
+
+    /* Keep greeting message consistent */
+    [dir="rtl"] .greeting-message,
+    [lang="ar"] .greeting-message {
+        text-align: center !important;
+    }
   </style>
 </head>
 <body>
@@ -933,7 +1027,7 @@
     <div class="language-switch">
         <button onclick="switchLanguage('en')" id="en-btn" class="lang-btn">EN</button>
         <button onclick="switchLanguage('ar')" id="ar-btn" class="lang-btn">ع</button>
-        <button onclick="switchLanguage('franco')" id="franco-btn" class="lang-btn">FR</button>
+       <!--  <button onclick="switchLanguage('franco')" id="franco-btn" class="lang-btn">FR</button>  -->
     </div>
 
     <script>
@@ -1621,6 +1715,20 @@
               const data = await response.json();
               
               if (data.success) {
+                  // Set RTL direction for Arabic
+                  if (language === 'ar') {
+                      document.documentElement.setAttribute('dir', 'rtl');
+                      document.body.setAttribute('dir', 'rtl');
+                  } else {
+                      document.documentElement.setAttribute('dir', 'ltr');
+                      document.body.setAttribute('dir', 'ltr');
+                  }
+                  
+                  // Update existing messages with the new language attribute
+                  document.querySelectorAll('.message').forEach(message => {
+                      message.setAttribute('lang', language);
+                  });
+
                   // Clear chat history
                   await fetch('/clear_history', {
                       method: 'POST',
@@ -1665,6 +1773,15 @@
                   btn.classList.add('active');
               }
           });
+
+          // Set initial RTL/LTR direction based on current language
+          if (currentLanguage === 'ar') {
+              document.documentElement.setAttribute('dir', 'rtl');
+              document.body.setAttribute('dir', 'rtl');
+          } else {
+              document.documentElement.setAttribute('dir', 'ltr');
+              document.body.setAttribute('dir', 'ltr');
+          }
       });
     </script>
 </body>
