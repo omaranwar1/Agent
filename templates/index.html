@@ -187,6 +187,7 @@
         word-wrap: break-word;
         line-height: 1.5;
         display: block;
+        position: relative;
     }
 
     #breadcrumbs a {
@@ -551,29 +552,6 @@
             box-sizing: border-box;  /* Added to include padding in width calculation */
         }
 
-        /* Header elements */
-        #breadcrumbs {
-            position: fixed;
-            top: 5px;
-            left: 50px;  /* Space for hamburger */
-            margin-top: 0;
-            width: calc(100% - 180px);  /* Increased space for buttons */
-            font-size: 12px;
-            z-index: 1000;
-            white-space: normal;
-            line-height: 1.5;
-            display: block;
-            word-wrap: break-word;
-            max-height: 40px;
-            overflow-y: auto;
-            padding-right: 10px; /* Add some padding on the right */
-        }
-
-        #breadcrumbs a {
-            display: inline-block;
-            margin-right: 5px;
-            white-space: normal;
-        }
 
         /* Adjust chat box top position for wrapped breadcrumbs */
         #chat-box {
@@ -631,11 +609,6 @@
             font-size: 12px;
             height: 28px;  /* Fixed height */
         }
-
-        /* Adjust breadcrumbs width to account for both buttons */
-        #breadcrumbs {
-            width: calc(100% - 180px);  /* Increased space for buttons */
-        }
     }
 
     /* Additional adjustments for iOS */
@@ -683,10 +656,6 @@
             width: 25%;
         }
 
-        #breadcrumbs {
-            width: calc(100% - 190px);  /* Further increased space for buttons on smaller screens */
-            font-size: 11px;
-        }
 
         .logout-btn,
         .clear-btn {
@@ -733,7 +702,7 @@
         display: none;
         position: fixed;
         left: 5px;
-        top: 70px;
+        top: 105px;
         width: 130px;
         height: auto; /* Increased space from bottom */
         background-color: #f5f5f5;
@@ -784,11 +753,79 @@
         }
     }
 
+    /* Add hamburger button styles */
+    .hamburger-btn {
+        display: none;  /* Hidden by default on desktop */
+        position: fixed;
+        left: 10px;
+        top: 5px;
+        z-index: 1001;
+        background: #4797ed;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 12px;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .hamburger-btn:hover {
+        background: #0056b3;
+    }
+
+    /* Modify quick-actions for mobile */
+    @media screen and (max-width: 768px) {
+        .hamburger-btn {
+            display: block;  /* Show on mobile */
+        }
+
+        #quick-actions {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 80%;
+            height: 100vh;
+            background-color: #f5f5f5;
+            z-index: 1000;
+            padding: 60px 15px 15px 15px; /* Added top padding for hamburger button */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+
+        #quick-actions.active {
+            display: block;
+        }
+
+        /* Add overlay for when menu is open */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        /* Adjust container margin for mobile */
+        #container {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+    }
+
     /* Update language switch styling */
     .language-switch {
         position: fixed;
-        top: 20px;
-        left: 150px; /* Position after the logo */
+        top: 65px;
+        left: 34px; /* Position after the logo */
         z-index: 1000;
         display: flex;
         gap: 8px;
@@ -819,9 +856,13 @@
     /* Mobile responsiveness */
     @media screen and (max-width: 768px) {
         .language-switch {
-            left: auto;
-            right: 20px;
+            position: fixed;
             top: 15px;
+            left: 47%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
         }
 
         .lang-btn {
@@ -848,6 +889,14 @@
     [dir="rtl"] .message,
     .message[lang="ar"] {
         font-family: 'Arial', 'Helvetica', sans-serif;  /* Use Arabic-friendly font */
+    }
+
+    /*bread*/
+    [dir="rtl"] #breadcrumbs {
+    text-align: right;
+    direction: rtl;
+    margin-right: 70px; /* Adjust spacing from the button */
+    margin-left: 0; /* Prevent unwanted left margin */
     }
 
     /* RTL adjustments for headers */
@@ -892,11 +941,7 @@
         unicode-bidi: embed;
     }
 
-    /* Remove RTL adjustments for breadcrumbs to keep them left-aligned */
-    [dir="rtl"] #breadcrumbs {
-        text-align: left;
-        direction: ltr;
-    }
+    
 
     /* Ensure consistent menu positioning for both LTR and RTL */
     [dir="rtl"] #service-buttons,
@@ -1074,10 +1119,13 @@
         }
       /*****************************************************************/
       function updateBreadcrumbs() {
-          const breadcrumbsContainer = document.getElementById("breadcrumbs");
-          breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) =>
-              `<a href="#" onclick="navigateToBreadcrumb(${index})">${crumb}</a>`
-          ).join(" > ");
+        const breadcrumbsContainer = document.getElementById("breadcrumbs");
+        const visibleBreadcrumbs = breadcrumbs.slice(-5); // Get the last 5 breadcrumbs
+        breadcrumbsContainer.innerHTML = visibleBreadcrumbs
+            .map((crumb, index) =>
+                `<a href="#" onclick="navigateToBreadcrumb(breadcrumbs.length - visibleBreadcrumbs.length + ${index})">${crumb}</a>`
+            )
+            .join(" > ");
       }
 
       function navigateToBreadcrumb(index) {
