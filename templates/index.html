@@ -1,1 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ramzy</title>
+  <link rel="icon" href="/static/android-chrome-192x192.png" type="image/png">
+  <style>
 
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f7f7f7;
+        position: relative;
+    }
+
+    #logo {
+        position: absolute;
+        top: 10px;
+        left: 30px;
+        max-width: 100px;
+        width: auto;
+        height: auto;
+        display: block;
+    }
+
+    #container {
+        display: flex;
+        width: 80%;
+        height: 100vh;
+        justify-content: center;
+        transition: all 0.8s ease;
+    }
+
+    #chat-container {
+        width: 80%;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 97.4%;
+        padding: 8px;
+        transition: width 0.8s ease;
+        position: relative; /* keep this */
+    }
+
+    #chat-box {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        border-bottom: 2px solid #ccc;
+        background-color: #f9f9f9;
+        margin-bottom: 10px;
+    }
+
+    /*////////////////////////////////////////////////////////////////////*/
+    /* Style for the close button in the iframe container */
+    .iframe-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1100; /* Ensure it appears above the iframe */
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    }
+
+    .iframe-close-btn:hover {
+    background-color: #cc0000;
+    }
+
+    /*////////////////////////////////////////////////////////////////////*/
+
+
+    /* Message styles */
+    .message {
+      padding: 10px 14px;
+      margin: 6px 0;
+      border-radius: 10px;
+      max-width: 85%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease;
+    }
+
+    .message:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .user-message {
+      background: linear-gradient(135deg, #4299e1, #63b3ed);
+      color: white;
+      text-align: right;
+      margin-left: auto;
+    }
+
+    .bot-message {
+      background: white;
+      border: 1px solid #e2e8f0;
+      text-align: left;
+      margin-right: auto;
+      line-height: 1.4;
+      color: #2d3748;
+      font-size: 15px;
+    }
+
+
+    .greeting-message {
+        color: #666;
+        font-weight: 600; /* Semi-bold */
+        font-size: 1.1em;
+        text-align: center;
+        max-width: 800px;
+        margin: 10px auto;
+        line-height: 1.5;
+    }
+
+
+    .input-container {
+        display: flex;
+        justify-content: space-between;
+        padding: 1px;
+        background-color: #fff;
+    }
+
+    #user-input {
+        width: 85%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+
+    #send-button {
+        width: 12%;
+        padding: 10px;
+        background-color: #4797ed;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #send-button:hover {
+        background-color: #0056b3;
+    }
+
+    #service-buttons,
+    .sub-service-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    #service-buttons button,
+    .sub-service-buttons button {
+        padding: 10px 15px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        cursor: pointer;
+        background-color: #e1f5fe;
+        transition: background-color 0.8s;
+    }
+
+    #service-buttons button:hover,
+    .sub-service-buttons button:hover {
+        background-color: #b3e5fc;
+    }
+
+    #breadcrumbs {
+        margin: 10px;
+        font-size: 14px;
+        color: #666;
+        width: calc(100% - 250px);  /* Increased space for both buttons */
+        word-wrap: break-word;
+        line-height: 1.5;
+        display: block;
+    }
+
+    #breadcrumbs a {
+        color: #007bff;
+        text-decoration: none;
+        margin-right: 5px;
+        display: inline-block;  /* Keep for better wrapping */
+        max-width: 100%;  /* Ensure links wrap within container */
+    }
+
+    #breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+
+    /* Adjusting iframe container */
+    #iframe-container {
+        display: none;          /* Hidden by default */
+        flex: 0 0 50%;          /* Takes 40% of the width */
+        height: 100%;           /* Matches parent container height */
+        background-color: white;
+        border-left: 2px solid #ccc;
+        box-sizing: border-box;
+        transition: all 0.8s ;      /* Remove unintended animations */
+    }
+
+    /* When iframe is active */
+    .chat-with-iframe #iframe-container {
+        display: block;         /* Make the iframe container visible */
+    }
+
+    /* Ensure iframe always fills its container */
+    #iframe-container iframe {
+        width: 100%;
+        height: 99%;
+        border: none;
+    }
+
+    /* Chat container width adjustment */
+    .chat-with-iframe #chat-container {
+        flex: 0 0 50%;          /* Reduce width when iframe is shown */
+    }
+
+    /* Force chat container to be 60% and iframe container 40% side by side */
+    #container.chat-with-iframe #chat-container {
+        width: 50% !important;
+        margin-right: 0 !important;       /* remove any leftover margins if needed */
+    }
+
+    #container.chat-with-iframe #iframe-container {
+        display: block !important;        /* ensure iframe is shown */
+        position: relative !important;    /* override absolute positioning */
+        width: 50% !important;
+        height: auto !important;          /* let it size automatically */
+        margin-left: 10px !important;     /* some spacing from chat container */
+        top: auto !important;
+        right: auto !important;
+    }
+
+    .clear-history-container {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+    }
+
+    .clear-btn {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .clear-btn:hover {
+        background-color: #cc0000;
+    }
+
+    /* Add these new styles for message formatting */
+    .message {
+        padding: 12px 16px;
+        margin: 6px 0;
+        border-radius: 10px;
+        max-width: 80%;
+        white-space: pre-wrap;  /* Preserves formatting */
+        line-height: 1.5;
+    }
+
+    /* Style markdown-like elements */
+    .bot-message .header-1 {
+      font-size: 1.5em;
+      font-weight: 600;
+      color: #2c5282;
+      margin: 18px 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid;
+      border-image: linear-gradient(to right, #4299e1, #63b3ed) 1;
+      letter-spacing: -0.3px;
+    }
+
+    .bot-message .header-2 {
+      font-size: 1.3em;
+      font-weight: 600;
+      color: #2d3748;
+      margin: 16px 0 10px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid;
+      border-image: linear-gradient(to right, #63b3ed, #90cdf4) 1;
+      letter-spacing: -0.2px;
+    }
+
+    .bot-message .header-3 {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #2d3748;
+      margin: 14px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid;
+      border-image: linear-gradient(to right, #90cdf4, #bee3f8) 1;
+    }
+
+    .bot-message .header-4 {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 12px 0 6px 0;
+        padding-bottom: 3px;
+        border-bottom: 1px solid;
+        border-image: linear-gradient(to right, #bee3f8, #ebf8ff) 1;
+    }
+
+
+    /* Adjust horizontal rule spacing */
+    .bot-message .horizontal-rule {
+      border: 0;
+      height: 1px;
+      background: linear-gradient(to right, #4299e1, #63b3ed, #90cdf4);
+      margin: 12px 0;            /* Reduced from 20px 0 */
+      border-radius: 1px;
+    }
+
+    .bot-message .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 16px 0;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.95em;
+      line-height: 1.5;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #4a5568;
+    }
+
+    .bot-message .inline-code {
+      background: #edf2f7;
+      color: #2d3748;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.9em;
+      border: 1px solid #e2e8f0;
+    }
+
+    .bot-message ul {
+      margin: 8px 0 8px 20px;
+      padding-left: 0;
+    }
+
+    .bot-message li {
+      margin: 4px 0;
+    }
+
+    .bot-message .blockquote {
+      border-left: 4px solid #4299e1;
+      background: linear-gradient(to right, #edf2f7, transparent);
+      color: #4a5568;
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Style for horizontal rules */
+    .bot-message hr,
+    .custom-divider {
+      border: 0;
+      border-top: 1px solid #ccc;
+      margin: 20px 0;
+    }
+
+    /* Style for # (heading) */
+    .hash-heading {
+      font-size: 1.8em;
+      font-weight: bold;
+      margin: 25px 0 15px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    /* Add specific styling for ### headers */
+    .bot-message .header-3 {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #2c3e50;
+      margin: 20px 0 10px 0;
+      padding-bottom: 5px;
+    }
+
+    /* Add these new styles for the logout button */
+    .logout-container {
+        position: absolute;
+        top: 10px;
+        right: 60px;  /* Increased from 120px to move further left */
+        z-index: 1000;
+    }
+
+    .logout-btn {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .logout-btn:hover {
+        background-color: #cc0000;
+    }
+     /* Add these new styles for the loading animation */
+     .loading-container {
+        display: none;
+        text-align: left;
+        margin: 10px 0;
+    }
+
+    .loading-dots {
+        display: inline-block;
+        position: relative;
+        width: 60px;
+        height: 20px;
+    }
+
+    .loading-dots div {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4797ed;
+        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+    }
+
+    .loading-dots div:nth-child(1) {
+        left: 6px;
+        animation: loading1 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(2) {
+        left: 6px;
+        animation: loading2 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(3) {
+        left: 26px;
+        animation: loading2 0.6s infinite;
+    }
+
+    .loading-dots div:nth-child(4) {
+        left: 45px;
+        animation: loading3 0.6s infinite;
+    }
+
+    @keyframes loading1 {
+        0% { transform: scale(0); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes loading2 {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(19px, 0); }
+    }
+
+    @keyframes loading3 {
+        0% { transform: scale(1); }
+        100% { transform: scale(0); }
+    }
+
+    /* Add these media queries at the end of your style section */
+    @media screen and (max-width: 768px) {
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+
+        #chat-container {
+            width: 100%;
+            height: 100%;
+            padding: 5px;
+            padding-top: 45px;  /* Reduced from 85px */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-box {
+            flex: 1;
+            padding: 10px;
+            padding-bottom: 120px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            position: absolute;
+            top: 45px;  /* Reduced from 85px to match container padding-top */
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            margin-bottom: 0;
+        }
+
+        /* Ensure last message and buttons have enough space */
+        .message:last-child,
+        #service-buttons,
+        .sub-service-buttons {
+            margin-bottom: 80px;  /* Increased margin */
+        }
+
+        /* Ensure buttons in the greeting are fully visible */
+        #greeting {
+            padding-bottom: 80px;  /* Added padding for greeting section */
+        }
+
+        .input-container {
+            padding: 8px 8px;  /* Reduced padding */
+            background-color: #fff;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;  /* Added to include padding in width calculation */
+        }
+
+        /* Header elements */
+        #breadcrumbs {
+            position: fixed;
+            top: 5px;
+            left: 50px;  /* Space for hamburger */
+            margin-top: 0;
+            width: calc(100% - 180px);  /* Increased space for buttons */
+            font-size: 12px;
+            z-index: 1000;
+            white-space: normal;
+            line-height: 1.5;
+            display: block;
+            word-wrap: break-word;
+            max-height: 40px;
+            overflow-y: auto;
+            padding-right: 10px; /* Add some padding on the right */
+        }
+
+        #breadcrumbs a {
+            display: inline-block;
+            margin-right: 5px;
+            white-space: normal;
+        }
+
+        /* Adjust chat box top position for wrapped breadcrumbs */
+        #chat-box {
+            top: 50px;  /* Slightly increased to accommodate possible second line */
+        }
+
+        #chat-container {
+            padding-top: 50px;  /* Adjusted to match */
+        }
+
+        .logout-container {
+            position: fixed;
+            top: 5px;
+            right: 70px;
+            z-index: 1000;
+        }
+
+        .clear-history-container {
+            position: fixed;
+            top: 5px;  /* Reduced from 10px */
+            right: 10px;
+            z-index: 1000;
+        }
+
+        /* Input elements */
+        #user-input {
+            width: 75%;  /* Reduced width */
+            height: 35px;
+            padding: 5px 10px;
+            margin-right: 5px;  /* Reduced margin */
+        }
+
+        #send-button {
+            width: 23%;  /* Increased width */
+            height: 35px;
+            padding: 5px;
+            min-width: unset;  /* Removed minimum width constraint */
+        }
+
+        /* Message styling */
+        .message {
+            max-width: 90%;
+            padding: 8px 10px;
+            margin-bottom: 8px;  /* Increased margin between messages */
+        }
+
+        /* Ensure last message has enough space */
+        .message:last-child {
+            margin-bottom: 60px;  /* Match input container height */
+        }
+
+        /* Adjust button sizes to fit side by side */
+        .logout-btn, .clear-btn {
+            padding: 6px 10px;  /* Slightly reduced padding */
+            font-size: 12px;
+            height: 28px;  /* Fixed height */
+        }
+
+        /* Adjust breadcrumbs width to account for both buttons */
+        #breadcrumbs {
+            width: calc(100% - 180px);  /* Increased space for buttons */
+        }
+    }
+
+    /* Additional adjustments for iOS */
+    @supports (-webkit-touch-callout: none) {
+        #chat-box {
+            /* iOS-specific scrolling fixes */
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+
+    /* Additional adjustments for very small screens */
+    @media screen and (max-height: 600px) {
+        #chat-box {
+            padding-bottom: 60px;
+        }
+
+        .input-container {
+            height: 60px;
+        }
+
+        #user-input,
+        #send-button {
+            height: 30px;
+        }
+    }
+
+    /* Add styles for even smaller screens */
+    @media screen and (max-width: 480px) {
+        #service-buttons button,
+        .sub-service-buttons button {
+            min-width: 100%;  /* One button per row */
+            margin: 2px 0;
+        }
+
+        .message {
+            max-width: 95%;
+            font-size: 14px;
+        }
+
+        #user-input {
+            width: 70%;
+        }
+
+        #send-button {
+            width: 25%;
+        }
+
+        #breadcrumbs {
+            width: calc(100% - 190px);  /* Further increased space for buttons on smaller screens */
+            font-size: 11px;
+        }
+
+        .logout-btn,
+        .clear-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+    }
+
+    /* Add styles for landscape orientation */
+    @media screen and (max-height: 480px) and (orientation: landscape) {
+        #chat-container {
+            height: 90vh;
+        }
+
+        #chat-box {
+            max-height: 60vh;
+        }
+
+        #service-buttons,
+        .sub-service-buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        #service-buttons button,
+        .sub-service-buttons button {
+            flex: 0 0 auto;
+            margin: 0 5px;
+            white-space: nowrap;
+        }
+    }
+
+    .error-message {
+        background-color: #ffebee !important;
+        color: #c62828;
+        border-left: 4px solid #c62828;
+        padding-left: 15px;
+    }
+
+    /* Add these new styles */
+    #quick-actions {
+        display: none;
+        position: fixed;
+        left: 5px;
+        top: 70px;
+        width: 130px;
+        height: auto; /* Increased space from bottom */
+        background-color: #f5f5f5;
+        padding: 10px;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        border-radius: 10px 10px 10px 10px;
+    }
+
+    #quick-actions h3 {
+        margin-bottom: 12px;
+        margin-top: 10px;
+        color: #333;
+        text-align: center;
+    }
+
+    .quick-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-bottom: 10px;
+    }
+
+    .quick-buttons button {
+        padding: 9px;
+        background-color: #e1f5fe;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .quick-buttons button:hover {
+        background-color: #b3e5fc;
+    }
+
+    /* Adjust container layout for desktop */
+    @media screen and (min-width: 769px) {
+        #quick-actions {
+            display: block;
+            left: 5px;
+        }
+
+        #container {
+            margin: 100px auto;
+            margin-left: calc((100% - 85%) / 2 + 115px); /* Increased from 80% to 85% */
+            width: calc(85% - 155px); /* Increased from 80% to 85% */
+        }
+    }
+
+    /* Update language switch styling */
+    .language-switch {
+        position: fixed;
+        top: 20px;
+        left: 150px; /* Position after the logo */
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+    }
+
+    .lang-btn {
+        padding: 6px 12px;
+        border: 1px solid #4797ed;
+        background-color: white;
+        color: #4797ed;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        min-width: 40px;
+    }
+
+    .lang-btn:hover {
+        background-color: #4797ed;
+        color: white;
+    }
+
+    .lang-btn.active {
+        background-color: #4797ed;
+        color: white;
+    }
+
+    /* Mobile responsiveness */
+    @media screen and (max-width: 768px) {
+        .language-switch {
+            left: auto;
+            right: 20px;
+            top: 15px;
+        }
+
+        .lang-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 35px;
+        }
+    }
+  </style>
+</head>
+<body>
+    <img id="logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo">
+    <!-- Add hamburger button -->
+    <button id="hamburger-menu" class="hamburger-btn">☰</button>
+    <div class="logout-container">
+        <button onclick="handleLogout()" class="logout-btn">Logout</button>
+    </div>
+    <!-- Add the new buttons container -->
+    <div id="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="quick-buttons">
+            <!-- Check if the user is an admin -->
+            {% if session['role'] == 'admin' %}
+                <button onclick="handleServiceClick('Accounting')">Accounting</button>
+                <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
+                <button onclick="handleServiceClick('Selling')">Selling</button>
+                <button onclick="handleServiceClick('Customers')">Customers</button>
+                <button onclick="handleServiceClick('Payroll')">Payroll</button>
+                <button onclick="handleServiceClick('Stock')">Stock</button>
+                <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
+                <button onclick="handleServiceClick('HR')">HR</button>
+                <button onclick="handleServiceClick('Projects')">Projects</button>
+                <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+            {% elif session['role'] == 'Accounting' %}
+                <button onclick="handleServiceClick('Accounting')">Accounting</button>
+            {% elif session['role'] == 'Purchasing' %}
+                <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
+            {% elif session['role'] == 'Selling' %}
+                <button onclick="handleServiceClick('Selling')">Selling</button>
+            {% elif session['role'] == 'CRM' %}
+                <button onclick="handleServiceClick('Customers')">Customers</button>
+            {% elif session['role'] == 'Payroll' %}
+                <button onclick="handleServiceClick('Payroll')">Payroll</button>
+            {% elif session['role'] == 'Stock' %}
+                <button onclick="handleServiceClick('Stock')">Stock</button>
+            {% elif session['role'] == 'Manufacturing' %}
+                <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
+            {% elif session['role'] == 'HR' %}
+                <button onclick="handleServiceClick('HR')">HR</button>
+            {% elif session['role'] == 'Projects' %}
+                <button onclick="handleServiceClick('Projects')">Projects</button>
+            {% elif session['role'] == 'Finance Manager' %}
+                <button onclick="handleServiceClick('Accounting')">Accounting</button>
+                <button onclick="handleServiceClick('Purchasing')">Purchasing</button>
+                <button onclick="handleServiceClick('Selling')">Selling</button>
+                <button onclick="handleServiceClick('Payroll')">Payroll</button>
+                <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+            {% elif session['role'] == 'Sales Manager' %}
+                <button onclick="handleServiceClick('Selling')">Selling</button>
+                <button onclick="handleServiceClick('Customers')">Customers</button>
+                <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+            {% elif session['role'] == 'Operations Manager' %}
+                <button onclick="handleServiceClick('Stock')">Stock</button>
+                <button onclick="handleServiceClick('Manufacturing')">Manufacturing</button>
+                <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+            {% elif session['role'] == 'HR Manager' %}
+                <button onclick="handleServiceClick('HR')">HR</button>
+                <button onclick="handleServiceClick('Payroll')">Payroll</button>
+                <button onclick="handleServiceClick('Projects')">Projects</button>
+                <button onclick="handleServiceClick('System Reports')">System Reports</button>
+                <button onclick="handleServiceClick('Dashboards')">Dashboards</button>
+            {% endif %}
+        </div>
+    </div>
+    <div id="container">
+        <div id="chat-container">
+            <div id="breadcrumbs"></div>
+            <div id="chat-box">
+                <div id="greeting" class="greeting-message">
+                    <!-- Greeting message -->
+                    <p>Hey, I'm Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
+                    <div id="service-buttons">
+                        <!--<button onclick="handleServiceClick('place holer')">place holer</button>-->
+                    </div>
+                </div>
+            </div>
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Type a message..." />
+                <button id="send-button">Send</button>
+            </div>
+            <div class="clear-history-container">
+                <button id="clearHistory" class="clear-btn">Clear</button>
+            </div>
+        </div>
+
+        <!-- The iframe container is hidden initially -->
+        <div id="iframe-container">
+            <!-- Close button overlay -->
+            <button class="iframe-close-btn" onclick="closeIframe()">Close</button>
+            <iframe id="report-iframe" src="" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <!-- Move the language switch buttons near the logo -->
+    <div class="language-switch">
+        <button onclick="switchLanguage('en')" id="en-btn" class="lang-btn">EN</button>
+        <button onclick="switchLanguage('ar')" id="ar-btn" class="lang-btn">ع</button>
+        <button onclick="switchLanguage('franco')" id="franco-btn" class="lang-btn">FR</button>
+    </div>
+
+    <script>
+      const breadcrumbs = ["Main menu"];
+
+      /*****************************************************************/
+      function handleIframeResponse(responseMessage) {
+            if (!responseMessage.startsWith("iframe::")) return false;
+
+            const iframeUrl = responseMessage.split("iframe::")[1].trim();
+            
+            // Check if on mobile (screen width less than 768px)
+            if (window.innerWidth <= 768) {
+                // Open in new tab for mobile
+                window.open(iframeUrl, '_blank');
+                displayMessage("Opening in new tab...", 'bot-message');
+                return true;
+            }
+
+            // Desktop behavior remains the same
+            const iframeContainer = document.getElementById('iframe-container');
+            const iframe = document.getElementById('report-iframe');
+
+            // Update iframe source
+            iframe.src = iframeUrl;
+
+            // Show iframe container and adjust UI
+            iframeContainer.style.display = 'block';
+            document.getElementById('container').classList.add('chat-with-iframe');
+
+            // Handle iframe loading errors
+            iframe.onload = () => {
+                displayMessage("Please find requested item in the next window", 'bot-message');
+            };
+
+            iframe.onerror = () => {
+                console.error("Failed to load iframe.");
+                displayMessage("The report failed to load. Please check the URL or try again.", 'bot-message');
+                iframeContainer.style.display = 'none';
+                document.getElementById('container').classList.remove('chat-with-iframe');
+            };
+
+            return true;
+        }
+      /*****************************************************************/
+      function updateBreadcrumbs() {
+          const breadcrumbsContainer = document.getElementById("breadcrumbs");
+          breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) =>
+              `<a href="#" onclick="navigateToBreadcrumb(${index})">${crumb}</a>`
+          ).join(" > ");
+      }
+
+      function navigateToBreadcrumb(index) {
+          breadcrumbs.splice(index + 1);
+          updateBreadcrumbs();
+          if (index === 0) {
+              // Reset state before reloading
+              fetch('/reset_state', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ session_id: 'default' })
+              })
+              .then(() => location.reload());
+          } else {
+              handleBreadcrumbNavigation(breadcrumbs[index]);
+          }
+      }
+
+      function handleBreadcrumbNavigation(serviceName) {
+          const chatBox = document.getElementById("chat-box");
+          chatBox.innerHTML = "";
+          displayMessage(`Navigated back to ${serviceName}`, 'bot-message');
+
+          if (serviceName === "Main menu") {
+              location.reload(); 
+          } else {
+              handleServiceClick(serviceName, true);
+          }
+      }
+
+      function showLoading() {
+          const chatBox = document.getElementById("chat-box");
+          const loadingDiv = document.createElement("div");
+          loadingDiv.className = "loading-container";
+          loadingDiv.innerHTML = `
+              <div class="loading-dots">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+              </div>
+          `;
+          chatBox.appendChild(loadingDiv);
+          loadingDiv.style.display = 'block';
+          chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function hideLoading() {
+          const loadingContainer = document.querySelector('.loading-container');
+          if (loadingContainer) {
+              loadingContainer.remove();
+          }
+      }
+
+        function sendMessage() {
+            const userMessage = document.getElementById("user-input").value.trim();
+            if (!userMessage) return;
+
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
+
+            displayMessage(userMessage, 'user-message');
+            document.getElementById("user-input").value = '';
+
+            showLoading(); // Show loading animation
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseMessage = data.response;
+                // Handle iframe or normal responses
+                if (!handleIframeResponse(responseMessage)) {
+                    displayMessage(responseMessage, 'bot-message');
+                }
+                hideLoading(); // Moved here to ensure it's called after displaying the message
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
+                hideLoading(); // Also ensure it's called on error
+            });
+        }
+
+        // Handle service click checks if the user selected one of the pre defined services
+        function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
+            // Prevent multiple rapid clicks
+            if (handleServiceClick.isProcessing) return;
+            handleServiceClick.isProcessing = true;
+
+            if (!isBreadcrumbNavigation) {
+                breadcrumbs.push(serviceName);
+                updateBreadcrumbs();
+            }
+
+            displayMessage(serviceName, 'user-message');
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
+
+            showLoading();
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: serviceName })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const responseMessage = data.response;
+
+                    if (!responseMessage) {
+                        throw new Error("Empty response from server.");
+                    }
+
+                    if (!handleIframeResponse(responseMessage)) {
+                        displayMessage(responseMessage, 'bot-message');
+                    }
+
+                    // Sub-service options logic
+                    if (serviceName === "Accounting Insights") {
+                        displaySubServiceOptions(['View Journal Entry', 'View Payment Entry', 'View Sales Invoice', 'View Purchase Invoice'], "accounting-subservices");
+                    } 
+                    else if (serviceName === "Purchasing Insights") {
+                        displaySubServiceOptions(['View Purchase Invoice'], "purchasing-subservices");
+                    } 
+                    else if (serviceName === "Selling Insights") {
+                        displaySubServiceOptions(['View Sales Invoice', 'View Quotation', 'View Delivery Note'], "selling-subservices");
+                    } 
+                    else if (serviceName === "Customer Insights") {
+                        displaySubServiceOptions(['View Lead', 'View Opportunity', 'View Customer List'], "crm-subservices");
+                    } 
+                    else if (serviceName === "Payroll Insights") {
+                        displaySubServiceOptions(['View Payroll Entry', 'View Salary Slip'], "payroll-subservices");
+                    } 
+                    else if (serviceName === "Stock Insights") {
+                        displaySubServiceOptions(['View Stock Entry', 'View Stock Reconciliation'], "stock-subservices");
+                    } 
+                    else if (serviceName === "Manufacturing Insights") {
+                        displaySubServiceOptions(['View BOM', 'View Work Order', 'View Job Card'], "manufacturing-subservices");
+                    } 
+                    else if (serviceName === "HR Insights") {
+                        displaySubServiceOptions(['View Employee Checkin', 'View Employee'], "HR-subservices");
+                    }
+                    else if (serviceName === "Projects Insights") {
+                        displaySubServiceOptions(['View Task', 'View Project', 'View Employee Checkin', 'View Timesheet'], "Projects-subservices");
+                    } 
+                    else if (serviceName === "System Reports") {
+                        if (userRole === "admin") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+                        } 
+                        else if (userRole === "Finance Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "Sales Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "HR Manager") {
+                            displaySubServiceOptions(['HR & Payroll Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "Operations Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Stock Reports'], "system-reports-subservices");
+                        }
+                    } 
+                    else if (serviceName === "Purchasing & Selling Reports") {
+                        displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
+                    } 
+                    else if (serviceName === "Accounting Reports") {
+                        displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
+                    } 
+                    else if (serviceName === "HR & Payroll Reports") {
+                        displaySubServiceOptions(['Monthly Attendance Sheet', 'Shift Attendance', 'Employee Leave Balance Summary', 'Salary Register'], "hr-payroll-reports");
+                    } 
+                    else if (serviceName === "Stock Reports") {
+                        displaySubServiceOptions(['Total Stock Summary', 'Stock Ledger'], "stock-reports");
+                    } 
+                    else if (serviceName === "Add data") {
+                        displaySubServiceOptions(['Accounting module', 'Purchasing module', 'Selling module', 'CRM module', 'HR module', 'Payroll module', 'Stock module', 'Manufacturing module', 'Other modules']);
+                    } 
+                    else if (serviceName === "Accounting") {
+                        displaySubServiceOptions(["Accounting Insights", "Journal Entry", "Payment Entry", "Sales Invoice", "Purchase Invoice"]);
+                    } 
+                    else if (serviceName === "Purchasing") {
+                        displaySubServiceOptions(["Purchasing Insights", "Purchase Invoice", "Purchase Receipt" ]);
+                    } 
+                    else if (serviceName === "Selling") {
+                        displaySubServiceOptions(["Selling Insights", "Sales Invoice", "Sales Order",  "Quotation", "Supplier Quotation", "Request for Quotation"]);
+                    } 
+                    else if (serviceName === "Customers") {
+                        displaySubServiceOptions(["Customer Insights", "Lead", "Opportunity", "Customer"]);
+                    } 
+                    else if (serviceName === "HR") {
+                        displaySubServiceOptions(["HR Insights", "Leave Policy Assignment", "Leave Application", "Employee Attendance Tool", "Upload Attendance", "Employee"]);
+                    } 
+                    else if (serviceName === "Payroll") {
+                        displaySubServiceOptions(["Payroll Insights", "Payroll Entry", "Salary Slip" ]);
+                    } 
+                    else if (serviceName === "Stock") {
+                        displaySubServiceOptions(["Stock Insights", "Stock Entry", "Stock Reconciliation" ]);
+                    } 
+                    else if (serviceName === "Manufacturing") {
+                        displaySubServiceOptions(["Manufacturing Insights", "BOM", "Work Order", "Job Card"]);
+                    } 
+                    else if (serviceName === "Projects") {
+                        displaySubServiceOptions(["Projects Insights", "Task", "Project", "Employee Checkin", "Timesheet"]);
+                    } 
+                    else if (serviceName === "Dashboards") {
+                        if (userRole === "admin") {
+                            displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']);
+                        } 
+                        else if (userRole === "Accounting") {
+                            displaySubServiceOptions(['Accounts Dashboard']);
+                        }
+                        else if (userRole === "Purchasing") {
+                            displaySubServiceOptions(['Buying Dashboard']);
+                        }
+                        else if (userRole === "Selling") {
+                            displaySubServiceOptions(['Selling Dashboard']);
+                        }
+                        else if (userRole === "CRM") {
+                            displaySubServiceOptions(['CRM Dashboard']);
+                        }
+                        else if (userRole === "Payroll") {
+                            displaySubServiceOptions(['Payroll Dashboard']);
+                        }
+                        else if (userRole === "Stock") {
+                            displaySubServiceOptions(['Stock Dashboard']);
+                        }
+                        else if (userRole === "Manufacturing") {
+                            displaySubServiceOptions(['Manufacturing Dashboard']);
+                        }
+                        else if (userRole === "HR") {
+                            displaySubServiceOptions(['Human Resource Dashboard']);
+                        }
+                        else if (userRole === "Projects") {
+                            displaySubServiceOptions(['Project Dashboard']);
+                        }
+                        else if (userRole === "Finance Manager") {
+                            displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'Payroll Dashboard']);
+                        }
+                        else if (userRole === "Sales Manager") {
+                            displaySubServiceOptions(['Selling Dashboard', 'CRM Dashboard']);
+                        }
+                        else if (userRole === "Operations Manager") {
+                            displaySubServiceOptions(['Stock Dashboard', 'Manufacturing Dashboard']);
+                        }
+                        else if (userRole === "HR Manager") {
+                            displaySubServiceOptions(['Human Resource Dashboard', 'Payroll Dashboard', 'Project Dashboard']);
+                        }
+                        
+                    }
+                    else if (serviceName === "View data") {
+                        displaySubServiceOptions(['Accounting', "Purchasing", "Selling", "CRM", "Payroll", "Stock", "Manufacturing", "HR", "Projects","System Reports", "Dashboards"]);
+                    }
+
+                    hideLoading();
+                })
+                .catch(error => {
+                    console.error("Error in handleServiceClick:", error);
+                    displayMessage("I am working on some issues and will get back to you shortly.", 'bot-message');
+                    hideLoading();
+                })
+                .finally(() => {
+                    // Reset the processing flag
+                    handleServiceClick.isProcessing = false;
+                });
+        }
+
+        // Display sub-service options
+      function displaySubServiceOptions(options, containerClass) {
+          const chatBox = document.getElementById("chat-box");
+          const subServiceOptions = document.createElement("div");
+          subServiceOptions.className = `sub-service-buttons ${containerClass}`;
+          subServiceOptions.innerHTML = `
+              <p style="margin-bottom: 10px;">Please select one</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
+                  ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
+              </div>
+          `;
+          chatBox.appendChild(subServiceOptions);
+          chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function processBoldText(text) {
+      // Handle bold text with double asterisks, being more precise with the regex
+      return text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+                 .replace(/\n/g, '<br>');  // Handle any newlines within the text
+    }
+
+    // Process the message content
+    function processMessageContent(message) {
+      const lines = message.split('\n');
+      const processedLines = [];
+
+      let inCodeBlock = false;
+      let codeBlockContent = '';
+      let inList = false;
+      let listContent = '';
+
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+
+        // Handle lists with better number detection
+        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ') || /^\d+\.\s/.test(trimmedLine)) {
+          if (!inList) {
+            inList = true;
+            listContent = '<ul style="margin-bottom: 1em;">';
+          }
+          const processedLine = processBoldText(trimmedLine.replace(/^(-|\*|\d+\.)\s+/, ''));
+          listContent += `<li style="padding: 0.3em 0;">${processedLine}</li>`;
+          return;
+        } else if (inList) {
+          inList = false;
+          listContent += '</ul>';
+          processedLines.push({
+            type: 'list',
+            content: listContent
+          });
+          listContent = '';
+        }
+
+        // Handle code blocks
+        if (trimmedLine.startsWith('```')) {
+          if (inCodeBlock) {
+            processedLines.push({
+              type: 'code-block',
+              content: codeBlockContent
+            });
+            codeBlockContent = '';
+            inCodeBlock = false;
+          } else {
+            inCodeBlock = true;
+          }
+          return;
+        }
+
+        if (inCodeBlock) {
+          codeBlockContent += line + '\n';
+          return;
+        }
+
+        // Handle headers
+        if (trimmedLine.startsWith('# ')) {
+          processedLines.push({
+            type: 'header-1',
+            content: trimmedLine.substring(2)
+          });
+        } else if (trimmedLine.startsWith('## ')) {
+          processedLines.push({
+            type: 'header-2',
+            content: trimmedLine.substring(3)
+          });
+        } else if (trimmedLine.startsWith('### ')) {
+          processedLines.push({
+            type: 'header-3',
+            content: trimmedLine.substring(4)
+          });
+        } else if (trimmedLine.startsWith('#### ')) {
+          processedLines.push({
+            type: 'header-4',
+            content: trimmedLine.substring(5)
+          });
+        }
+        // Handle horizontal rules
+        else if (trimmedLine === '---' || trimmedLine === '***' || trimmedLine === '___') {
+          processedLines.push({
+            type: 'horizontal-rule',
+            content: ''
+          });
+        }
+        // Handle blockquotes
+        else if (trimmedLine.startsWith('> ')) {
+          processedLines.push({
+            type: 'blockquote',
+            content: trimmedLine.substring(2)
+          });
+        }
+        // Handle inline formatting and regular text
+        else if (trimmedLine) {
+          processedLines.push({
+            type: 'text',
+            content: processBoldText(trimmedLine)
+          });
+        }
+      });
+
+      // Handle any remaining list
+      if (inList) {
+        listContent += '</ul>';
+        processedLines.push({
+          type: 'list',
+          content: listContent
+        });
+      }
+
+      return processedLines;
+    }
+
+    // Display the message from the bot
+    function displayMessage(message, className) {
+      const chatBox = document.getElementById("chat-box");
+      const messageDiv = document.createElement("div");
+      messageDiv.className = "message " + className;
+
+      if (message.startsWith("iframe::")) {
+        const url = message.split("iframe::")[1];
+        const existingIframe = document.getElementById('iframe-container').querySelector("iframe");
+        if (existingIframe) existingIframe.remove();
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        document.getElementById('iframe-container').appendChild(iframe);
+        document.getElementById('iframe-container').style.display = "block";
+        chatBox.style.marginRight = "10px";
+      } else {
+        messageDiv.innerHTML = '';
+        chatBox.appendChild(messageDiv);
+
+        const processedLines = processMessageContent(message);
+        
+        // Typewriter effect
+        let i = 0;
+        const speed = 600;
+
+        function typeWriter() {
+          if (i < processedLines.length) {
+            const line = processedLines[i];
+            switch (line.type) {
+              case 'list':
+                messageDiv.innerHTML += line.content;
+                break;
+              case 'header-1':
+                messageDiv.innerHTML += `<div class="header-1">${line.content}</div>`;
+                break;
+              case 'header-2':
+                messageDiv.innerHTML += `<div class="header-2">${line.content}</div>`;
+                break;
+              case 'header-3':
+                messageDiv.innerHTML += `<div class="header-3">${line.content}</div>`;
+                break;
+              case 'header-4':
+                messageDiv.innerHTML += `<div class="header-4">${line.content}</div>`;
+                break;
+              case 'horizontal-rule':
+                messageDiv.innerHTML += `<hr class="horizontal-rule">`;
+                break;
+              case 'code-block':
+                messageDiv.innerHTML += `<div class="code-block">${line.content}</div>`;
+                break;
+              case 'blockquote':
+                messageDiv.innerHTML += `<div class="blockquote">${line.content}</div>`;
+                break;
+              case 'text':
+                messageDiv.innerHTML += line.content;
+                break;
+            }
+            i++;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            setTimeout(typeWriter, speed);
+          }
+        }
+
+        typeWriter();
+      }
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+      // Initialize breadcrumbs
+      updateBreadcrumbs();
+
+      document.getElementById("user-input").addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+              sendMessage();
+              event.preventDefault();
+          }
+      });
+
+      document.getElementById("send-button").addEventListener("click", sendMessage);
+      document.getElementById('clearHistory').addEventListener('click', function() {
+          fetch('/clear_history', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  session_id: 'default'
+              })
+          })
+          .then(response => response.json())
+          .then(data => {
+              // Clear the chat display
+              const chatBox = document.getElementById('chat-box');
+              chatBox.innerHTML = '';
+              
+              // Re-add the initial greeting
+              const greeting = document.createElement('div');
+              greeting.id = 'greeting';
+              greeting.className = 'greeting-message';
+              greeting.innerHTML = `
+                  <p> Hey, I'm Ramzy—your business partner. Running your business just got 10x easier and faster. Need a hand? Just ask!</p>
+                  <div id="service-buttons">
+                      <!--<button onclick="handleServiceClick('Place holder')">place holder</button>-->
+                  </div>
+              `;
+              chatBox.appendChild(greeting);
+
+              // Reset breadcrumbs
+              breadcrumbs.length = 1;
+              updateBreadcrumbs();
+              
+              // Hide iframe if visible
+              document.getElementById('iframe-container').style.display = 'none';
+              document.getElementById('container').classList.remove('chat-with-iframe');
+          })
+          .catch(error => console.error('Error:', error));
+      });      
+
+      // Add this new function for handling logout
+      function handleLogout() {
+          window.location.href = '/login';
+      }
+
+      // Fix for mobile viewport height
+      function setVH() {
+          let vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+      }
+
+      window.addEventListener('load', setVH);
+      window.addEventListener('resize', setVH);
+
+      // Improve mobile keyboard handling
+      document.getElementById('user-input').addEventListener('focus', function() {
+          setTimeout(function() {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+          }, 100);
+      });
+
+      // Add this new function
+      function quickAction(message) {
+          document.getElementById('user-input').value = message;
+          sendMessage();
+      }
+
+      // Add mobile menu handling
+      const hamburgerBtn = document.getElementById('hamburger-menu');
+      const quickActions = document.getElementById('quick-actions');
+      let menuOverlay;
+
+      // Create overlay element
+      function createOverlay() {
+          menuOverlay = document.createElement('div');
+          menuOverlay.className = 'menu-overlay';
+          document.body.appendChild(menuOverlay);
+      }
+      createOverlay();
+
+      // Toggle menu
+      function toggleMenu() {
+          quickActions.classList.toggle('active');
+          menuOverlay.classList.toggle('active');
+          hamburgerBtn.textContent = quickActions.classList.contains('active') ? '✕' : '☰';
+      }
+
+      // Event listeners
+      hamburgerBtn.addEventListener('click', toggleMenu);
+      menuOverlay.addEventListener('click', toggleMenu);
+
+      // Close menu when a quick action is clicked
+      document.querySelectorAll('#quick-actions button').forEach(button => {
+          button.addEventListener('click', () => {
+              if (window.innerWidth <= 768) {
+                  toggleMenu();
+              }
+          });
+      });
+
+      // Close menu on window resize if switching to desktop view
+      window.addEventListener('resize', () => {
+          if (window.innerWidth > 768 && quickActions.classList.contains('active')) {
+              toggleMenu();
+          }
+      });
+
+      // function to close iframe 
+      function closeIframe() {
+            // Hide the iframe container
+            const iframeContainer = document.getElementById('iframe-container');
+            iframeContainer.style.display = 'none';
+            // Remove the class that adjusted the layout
+            document.getElementById('container').classList.remove('chat-with-iframe');
+        }
+
+
+      // Add this at the start of your body tag to store session data
+      const userRole = "{{ session['role'] }}";
+
+      // Update the language switch function for better reliability
+      async function switchLanguage(language) {
+          // Prevent multiple clicks
+          if (window.isLanguageSwitching) return;
+          window.isLanguageSwitching = true;
+
+          try {
+              // Disable all buttons and show visual feedback
+              const buttons = document.querySelectorAll('.lang-btn');
+              buttons.forEach(btn => {
+                  btn.disabled = true;
+                  btn.style.opacity = '0.5';
+              });
+
+              // Make the API call
+              const response = await fetch('/switch_language', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  body: JSON.stringify({ language: language }),
+                  credentials: 'same-origin'
+              });
+
+              if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              const data = await response.json();
+              
+              if (data.success) {
+                  // Clear chat history
+                  await fetch('/clear_history', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-Requested-With': 'XMLHttpRequest'
+                      },
+                      body: JSON.stringify({ session_id: 'default' }),
+                      credentials: 'same-origin'
+                  });
+
+                  // Force a clean reload
+                  window.location.href = window.location.pathname + '?lang=' + language;
+              } else {
+                  throw new Error(data.message || 'Language switch failed');
+              }
+
+          } catch (error) {
+              console.error('Language switch error:', error);
+              alert('Failed to switch language. Please try again.');
+              
+              // Reset buttons
+              const buttons = document.querySelectorAll('.lang-btn');
+              buttons.forEach(btn => {
+                  btn.disabled = false;
+                  btn.style.opacity = '1';
+              });
+              
+          } finally {
+              window.isLanguageSwitching = false;
+          }
+      }
+
+      // Initialize language buttons on page load
+      document.addEventListener('DOMContentLoaded', function() {
+          const currentLanguage = "{{ session.get('language', 'en') }}";
+          
+          // Set active state for current language
+          document.querySelectorAll('.lang-btn').forEach(btn => {
+              btn.classList.remove('active');
+              if (btn.id === `${currentLanguage}-btn`) {
+                  btn.classList.add('active');
+              }
+          });
+      });
+    </script>
+</body>
+</html>
