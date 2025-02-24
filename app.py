@@ -9,7 +9,11 @@ from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from functools import wraps
 from datetime import datetime, timedelta
-from user_credentials import user_credentials  # Import credentials from the external file
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+import pickle
 
 
 app = Flask(__name__)
@@ -589,6 +593,10 @@ def login():
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
     try:
+        # Reload credentials from Google Sheets
+        global user_credentials
+        user_credentials = load_credentials_from_sheet()
+        
         # Get the email and password from the request
         email = request.json.get("email")
         password = request.json.get("password")
@@ -696,6 +704,94 @@ def check_session():
         return jsonify({'status': 'valid'}), 200
     return jsonify({'status': 'invalid'}), 401
 
+# Define the scopes needed for Google Sheets
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+
+def get_google_sheet_credentials():
+    """Gets credentials from Google Sheets."""
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    
+    # If there are no (valid) credentials available, let the user log in
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    return creds
+
+def load_credentials_from_sheet():
+    """Loads user credentials from Google Sheet."""
+    try:
+        creds = get_google_sheet_credentials()
+        service = build('sheets', 'v4', credentials=creds)
+
+        SPREADSHEET_ID = '1Q75plMxVzceZqBMUSyrZpujRj9mR3YLOM3W-ievyawU'
+        
+        # Get sheet metadata
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheets = sheet_metadata.get('sheets', '')
+        sheet_names = [sheet['properties']['title'] for sheet in sheets]
+        
+        first_sheet = sheet_names[0]
+        RANGE_NAME = f"'{first_sheet}'!A:E"
+        
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
+                                  range=RANGE_NAME).execute()
+        values = result.get('values', [])
+
+        if not values:
+            print('No data found.')
+            return {}
+
+        # Convert sheet data to user_credentials format
+        credentials = {}
+        for i, row in enumerate(values):
+            try:
+                if len(row) >= 5 and i > 0:  # Skip header row
+                    email = row[0]
+                    
+                    # Convert Python dict string to proper JSON
+                    header_str = row[3].replace("'", '"')  # Replace single quotes with double quotes
+                    header_json = json.loads(header_str)
+
+                    credentials[email] = {
+                        "password": row[1],
+                        "base_url": row[2],
+                        "header": header_json,
+                        "role": row[4]
+                    }
+            except Exception as row_error:
+                print(f"Error processing row {i+1}: {str(row_error)}")
+                continue
+
+        return credentials
+
+    except Exception as e:
+        print(f"Error loading credentials from Google Sheet: {e}")
+        # Provide fallback credentials during API initialization
+        return {
+            "demo@example.com": {
+                "password": "demo123",
+                "base_url": "http://your-default-url.com",
+                "header": {"Authorization": "token your-default-token"},
+                "role": "admin"
+            }
+        }
+
+# Replace the user_credentials import with this function call
+user_credentials = load_credentials_from_sheet()
 
 # Run the app
 if __name__ == "__main__":
