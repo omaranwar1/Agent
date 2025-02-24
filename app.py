@@ -708,24 +708,41 @@ def check_session():
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 def get_google_sheet_credentials():
-    """Gets credentials from Google Sheets."""
+    """Gets credentials from Google Sheets without requiring browser interaction."""
     creds = None
     # The file token.pickle stores the user's access and refresh tokens
     if os.path.exists('token.pickle'):
         with open('token.pickle', 'rb') as token:
             creds = pickle.load(token)
     
-    # If there are no (valid) credentials available, let the user log in
+    # If there are no (valid) credentials available, use refresh token
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                print(f"Error refreshing credentials: {str(e)}")
+                return None
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+            try:
+                # Use local credentials file
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', 
+                    SCOPES,
+                    redirect_uri='urn:ietf:wg:oauth:2.0:oob'  # Use out-of-band authentication
+                )
+                auth_url = flow.authorization_url()[0]
+                print(f'Please visit this URL to authorize the application: {auth_url}')
+                code = input('Enter the authorization code: ')
+                flow.fetch_token(code=code)
+                creds = flow.credentials
+                
+                # Save the credentials for the next run
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
+            except Exception as e:
+                print(f"Error in authentication flow: {str(e)}")
+                return None
 
     return creds
 
@@ -733,8 +750,11 @@ def load_credentials_from_sheet():
     """Loads user credentials from Google Sheet."""
     try:
         creds = get_google_sheet_credentials()
+        if not creds:
+            raise Exception("Failed to get credentials")
+            
         service = build('sheets', 'v4', credentials=creds)
-
+        
         SPREADSHEET_ID = '1Q75plMxVzceZqBMUSyrZpujRj9mR3YLOM3W-ievyawU'
         
         # Get sheet metadata
@@ -763,7 +783,7 @@ def load_credentials_from_sheet():
                     email = row[0]
                     
                     # Convert Python dict string to proper JSON
-                    header_str = row[3].replace("'", '"')  # Replace single quotes with double quotes
+                    header_str = row[3].replace("'", '"')
                     header_json = json.loads(header_str)
 
                     credentials[email] = {
@@ -779,7 +799,7 @@ def load_credentials_from_sheet():
         return credentials
 
     except Exception as e:
-        print(f"Error loading credentials from Google Sheet: {e}")
+        print(f"Error loading credentials from Google Sheet: {str(e)}")
         # Provide fallback credentials during API initialization
         return {
             "demo@example.com": {
