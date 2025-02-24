@@ -60,6 +60,24 @@
     }
 
     /*////////////////////////////////////////////////////////////////////*/
+    /* Style for the close button in the iframe container */
+    .iframe-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1100; /* Ensure it appears above the iframe */
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    }
+
+    .iframe-close-btn:hover {
+    background-color: #cc0000;
+    }
+
     /*////////////////////////////////////////////////////////////////////*/
 
 
@@ -162,7 +180,25 @@
     }
 
     #breadcrumbs {
-        display: none !important;
+        margin: 10px;
+        font-size: 14px;
+        color: #666;
+        width: calc(100% - 250px);  /* Increased space for both buttons */
+        word-wrap: break-word;
+        line-height: 1.5;
+        display: block;
+    }
+
+    #breadcrumbs a {
+        color: #007bff;
+        text-decoration: none;
+        margin-right: 5px;
+        display: inline-block;  /* Keep for better wrapping */
+        max-width: 100%;  /* Ensure links wrap within container */
+    }
+
+    #breadcrumbs a:hover {
+        text-decoration: underline;
     }
 
     /* Adjusting iframe container */
@@ -217,7 +253,7 @@
     }
 
     .clear-btn {
-        background-color: #4797ed !important;  /* Match the send button color */
+        background-color: #ff4444;
         color: white;
         border: none;
         padding: 8px 16px;
@@ -229,7 +265,7 @@
     }
 
     .clear-btn:hover {
-        background-color: #0056b3 !important;  /* Match the send button hover color */
+        background-color: #cc0000;
     }
 
     /* Add these new styles for message formatting */
@@ -373,7 +409,7 @@
     }
 
     .logout-btn {
-        background-color: #4797ed !important;  /* Match the send button color */
+        background-color: #ff4444;
         color: white;
         border: none;
         padding: 8px 16px;
@@ -385,7 +421,7 @@
     }
 
     .logout-btn:hover {
-        background-color: #0056b3 !important;  /* Match the send button hover color */
+        background-color: #cc0000;
     }
      /* Add these new styles for the loading animation */
      .loading-container {
@@ -750,7 +786,7 @@
 
     /* Add hamburger button styles */
     .hamburger-btn {
-        display: none !important;
+        display: none;  /* Hidden by default on desktop */
         position: fixed;
         left: 10px;
         top: 5px;
@@ -814,135 +850,6 @@
             margin-left: 0 !important;
             width: 100% !important;
         }
-    }
-
-    /* Disable quick actions menu by setting display to none and removing all related styles */
-    #quick-actions {
-        display: none !important;
-    }
-    
-    /* Remove hamburger button */
-    .hamburger-btn {
-        display: none !important;
-    }
-    
-    /* Reset container margin and width since quick actions menu is removed */
-    #container {
-        margin: 100px auto !important;
-        width: 85% !important;
-    }
-    
-    /* Remove menu overlay */
-    .menu-overlay {
-        display: none !important;
-    }
-    
-    @media screen and (max-width: 768px) {
-        #container {
-            margin: 20px auto !important;
-            width: 95% !important;
-        }
-    }
-
-    /* Add these new styles for system/loading messages */
-    .loading-message {
-        opacity: 0.7;
-        padding: 2px 6px !important;
-        min-height: auto !important;
-        font-size: 0.8em !important;
-        background-color: #f5f5f5 !important;
-        margin: 1px 0 !important;
-        max-width: 40% !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 3px !important;
-        border-radius: 12px !important;
-    }
-
-    .system-details {
-        font-size: 0.75em !important;  /* Smaller font */
-        padding: 3px 6px !important;   /* Reduced padding */
-        background-color: #f8f9fa !important;
-        border-left: 2px solid #4797ed !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        margin: 2px 0 !important;
-    }
-
-    .system-details:hover {
-        background-color: #f1f5f9 !important;
-        border-left-color: #4797ed !important;
-    }
-
-    .system-status.clickable {
-        color: #6B7280;
-        font-size: 0.8em;
-        font-style: italic;
-        white-space: nowrap !important;
-        display: inline !important;
-    }
-
-    .details-popup {
-        background-color: white !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 6px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-        padding: 6px !important;
-    }
-
-    .detail-item {
-        padding: 3px 0 !important;
-        color: #2d3748 !important;
-        font-family: monospace !important;
-        font-size: 0.85em !important;
-        border-bottom: 1px solid #f0f0f0 !important;
-    }
-
-    .detail-item:last-child {
-        border-bottom: none !important;
-    }
-
-    .loading-dots {
-        display: inline-flex;
-        margin-left: 3px;
-        align-items: center;
-        height: 8px;
-    }
-
-    .loading-dots div {
-        width: 2px;
-        height: 2px;
-        margin: 0 1px;
-        background: #6B7280;
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-    }
-
-    /* Update disabled state styling */
-    #user-input:disabled {
-        background-color: #f3f4f6 !important;
-        color: #9ca3af !important;
-        border-color: #e5e7eb !important;
-        cursor: not-allowed !important;
-    }
-
-    #send-button:disabled {
-        background-color: #e5e7eb !important;
-        color: #9ca3af !important;
-        cursor: not-allowed !important;
-        opacity: 0.7 !important;
-    }
-
-    .message-box.disabled {
-        background-color: #f3f4f6 !important;
-        border: 1px solid #e5e7eb !important;
-        opacity: 0.8 !important;
-    }
-
-    /* Add a subtle message when disabled */
-    #user-input:disabled::placeholder {
-        color: #9ca3af !important;
-        font-style: italic !important;
     }
   </style>
 </head>
@@ -1038,6 +945,7 @@
         <!-- The iframe container is hidden initially -->
         <div id="iframe-container">
             <!-- Close button overlay -->
+            <button class="iframe-close-btn" onclick="closeIframe()">Close</button>
             <iframe id="report-iframe" src="" frameborder="0"></iframe>
         </div>
     </div>
@@ -1133,6 +1041,7 @@
                   <div></div>
                   <div></div>
                   <div></div>
+                  <div></div>
               </div>
           `;
           chatBox.appendChild(loadingDiv);
@@ -1147,266 +1056,246 @@
           }
       }
 
-      function sendMessage() {
-          if (isDemo) {
-              const userInput = document.getElementById("user-input").value.trim();
-              if (!userInput) return;
+        function sendMessage() {
+            const userMessage = document.getElementById("user-input").value.trim();
+            if (!userMessage) return;
 
-              // Display user message
-              displayDemoMessage({ role: 'user', message: userInput });
-              
-              // Clear input
-              document.getElementById("user-input").value = '';
-              
-              // Disable input until next user turn
-              document.getElementById("user-input").disabled = true;
-              document.getElementById("send-button").disabled = true;
-              
-              awaitingUserInput = false;
-              
-              // Continue with Ramzy's responses
-              setTimeout(continueDemoConversation, 1000);
-          } else {
-              // Original sendMessage logic for non-demo mode
-              const userMessage = document.getElementById("user-input").value.trim();
-              if (!userMessage) return;
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
 
-              const greeting = document.getElementById("greeting");
-              if (greeting) greeting.remove();
+            displayMessage(userMessage, 'user-message');
+            document.getElementById("user-input").value = '';
 
-              displayMessage(userMessage, 'user-message');
-              document.getElementById("user-input").value = '';
+            showLoading(); // Show loading animation
 
-              showLoading();
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseMessage = data.response;
+                // Handle iframe or normal responses
+                if (!handleIframeResponse(responseMessage)) {
+                    displayMessage(responseMessage, 'bot-message');
+                }
+                hideLoading(); // Moved here to ensure it's called after displaying the message
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
+                hideLoading(); // Also ensure it's called on error
+            });
+        }
 
-              fetch('/get_response', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ message: userMessage })
-              })
-              .then(response => response.json())
-              .then(data => {
-                  const responseMessage = data.response;
-                  if (!handleIframeResponse(responseMessage)) {
-                      displayMessage(responseMessage, 'bot-message');
-                  }
-                  hideLoading();
-              })
-              .catch(error => {
-                  console.error("Error:", error);
-                  displayMessage("Sorry, there was an error. Please try again later.", 'bot-message');
-                  hideLoading();
-              });
-          }
+        // Handle service click checks if the user selected one of the pre defined services
+        function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
+            // Prevent multiple rapid clicks
+            if (handleServiceClick.isProcessing) return;
+            handleServiceClick.isProcessing = true;
+
+            if (!isBreadcrumbNavigation) {
+                breadcrumbs.push(serviceName);
+                updateBreadcrumbs();
+            }
+
+            displayMessage(serviceName, 'user-message');
+            const greeting = document.getElementById("greeting");
+            if (greeting) greeting.remove();
+
+            showLoading();
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: serviceName })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const responseMessage = data.response;
+
+                    if (!responseMessage) {
+                        throw new Error("Empty response from server.");
+                    }
+
+                    if (!handleIframeResponse(responseMessage)) {
+                        displayMessage(responseMessage, 'bot-message');
+                    }
+
+                    // Sub-service options logic
+                    if (serviceName === "Accounting Insights") {
+                        displaySubServiceOptions(['View Journal Entry', 'View Payment Entry', 'View Sales Invoice', 'View Purchase Invoice'], "accounting-subservices");
+                    } 
+                    else if (serviceName === "Purchasing Insights") {
+                        displaySubServiceOptions(['View Purchase Invoice'], "purchasing-subservices");
+                    } 
+                    else if (serviceName === "Selling Insights") {
+                        displaySubServiceOptions(['View Sales Invoice', 'View Quotation', 'View Delivery Note'], "selling-subservices");
+                    } 
+                    else if (serviceName === "Customer Insights") {
+                        displaySubServiceOptions(['View Lead', 'View Opportunity', 'View Customer List'], "crm-subservices");
+                    } 
+                    else if (serviceName === "Payroll Insights") {
+                        displaySubServiceOptions(['View Payroll Entry', 'View Salary Slip'], "payroll-subservices");
+                    } 
+                    else if (serviceName === "Stock Insights") {
+                        displaySubServiceOptions(['View Stock Entry', 'View Stock Reconciliation'], "stock-subservices");
+                    } 
+                    else if (serviceName === "Manufacturing Insights") {
+                        displaySubServiceOptions(['View BOM', 'View Work Order', 'View Job Card'], "manufacturing-subservices");
+                    } 
+                    else if (serviceName === "HR Insights") {
+                        displaySubServiceOptions(['View Employee Checkin', 'View Employee'], "HR-subservices");
+                    }
+                    else if (serviceName === "Projects Insights") {
+                        displaySubServiceOptions(['View Task', 'View Project', 'View Employee Checkin', 'View Timesheet'], "Projects-subservices");
+                    } 
+                    else if (serviceName === "System Reports") {
+                        if (userRole === "admin") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+                        } 
+                        else if (userRole === "Finance Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "Sales Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "HR Manager") {
+                            displaySubServiceOptions(['HR & Payroll Reports'], "system-reports-subservices");
+                        }
+                        else if (userRole === "Operations Manager") {
+                            displaySubServiceOptions(['Purchasing & Selling Reports', 'Stock Reports'], "system-reports-subservices");
+                        }
+                    } 
+                    else if (serviceName === "Purchasing & Selling Reports") {
+                        displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
+                    } 
+                    else if (serviceName === "Accounting Reports") {
+                        displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
+                    } 
+                    else if (serviceName === "HR & Payroll Reports") {
+                        displaySubServiceOptions(['Monthly Attendance Sheet', 'Shift Attendance', 'Employee Leave Balance Summary', 'Salary Register'], "hr-payroll-reports");
+                    } 
+                    else if (serviceName === "Stock Reports") {
+                        displaySubServiceOptions(['Total Stock Summary', 'Stock Ledger'], "stock-reports");
+                    } 
+                    else if (serviceName === "Add data") {
+                        displaySubServiceOptions(['Accounting module', 'Purchasing module', 'Selling module', 'CRM module', 'HR module', 'Payroll module', 'Stock module', 'Manufacturing module', 'Other modules']);
+                    } 
+                    else if (serviceName === "Accounting") {
+                        displaySubServiceOptions(["Accounting Insights", "Journal Entry", "Payment Entry", "Sales Invoice", "Purchase Invoice"]);
+                    } 
+                    else if (serviceName === "Purchasing") {
+                        displaySubServiceOptions(["Purchasing Insights", "Purchase Invoice", "Purchase Receipt" ]);
+                    } 
+                    else if (serviceName === "Selling") {
+                        displaySubServiceOptions(["Selling Insights", "Sales Invoice", "Sales Order",  "Quotation", "Supplier Quotation", "Request for Quotation"]);
+                    } 
+                    else if (serviceName === "Customers") {
+                        displaySubServiceOptions(["Customer Insights", "Lead", "Opportunity", "Customer"]);
+                    } 
+                    else if (serviceName === "HR") {
+                        displaySubServiceOptions(["HR Insights", "Leave Policy Assignment", "Leave Application", "Employee Attendance Tool", "Upload Attendance", "Employee"]);
+                    } 
+                    else if (serviceName === "Payroll") {
+                        displaySubServiceOptions(["Payroll Insights", "Payroll Entry", "Salary Slip" ]);
+                    } 
+                    else if (serviceName === "Stock") {
+                        displaySubServiceOptions(["Stock Insights", "Stock Entry", "Stock Reconciliation" ]);
+                    } 
+                    else if (serviceName === "Manufacturing") {
+                        displaySubServiceOptions(["Manufacturing Insights", "BOM", "Work Order", "Job Card"]);
+                    } 
+                    else if (serviceName === "Projects") {
+                        displaySubServiceOptions(["Projects Insights", "Task", "Project", "Employee Checkin", "Timesheet"]);
+                    } 
+                    else if (serviceName === "Dashboards") {
+                        if (userRole === "admin") {
+                            displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']);
+                        } 
+                        else if (userRole === "Accounting") {
+                            displaySubServiceOptions(['Accounts Dashboard']);
+                        }
+                        else if (userRole === "Purchasing") {
+                            displaySubServiceOptions(['Buying Dashboard']);
+                        }
+                        else if (userRole === "Selling") {
+                            displaySubServiceOptions(['Selling Dashboard']);
+                        }
+                        else if (userRole === "CRM") {
+                            displaySubServiceOptions(['CRM Dashboard']);
+                        }
+                        else if (userRole === "Payroll") {
+                            displaySubServiceOptions(['Payroll Dashboard']);
+                        }
+                        else if (userRole === "Stock") {
+                            displaySubServiceOptions(['Stock Dashboard']);
+                        }
+                        else if (userRole === "Manufacturing") {
+                            displaySubServiceOptions(['Manufacturing Dashboard']);
+                        }
+                        else if (userRole === "HR") {
+                            displaySubServiceOptions(['Human Resource Dashboard']);
+                        }
+                        else if (userRole === "Projects") {
+                            displaySubServiceOptions(['Project Dashboard']);
+                        }
+                        else if (userRole === "Finance Manager") {
+                            displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'Payroll Dashboard']);
+                        }
+                        else if (userRole === "Sales Manager") {
+                            displaySubServiceOptions(['Selling Dashboard', 'CRM Dashboard']);
+                        }
+                        else if (userRole === "Operations Manager") {
+                            displaySubServiceOptions(['Stock Dashboard', 'Manufacturing Dashboard']);
+                        }
+                        else if (userRole === "HR Manager") {
+                            displaySubServiceOptions(['Human Resource Dashboard', 'Payroll Dashboard', 'Project Dashboard']);
+                        }
+                        
+                    }
+                    else if (serviceName === "View data") {
+                        displaySubServiceOptions(['Accounting', "Purchasing", "Selling", "CRM", "Payroll", "Stock", "Manufacturing", "HR", "Projects","System Reports", "Dashboards"]);
+                    }
+
+                    hideLoading();
+                })
+                .catch(error => {
+                    console.error("Error in handleServiceClick:", error);
+                    displayMessage("I am working on some issues and will get back to you shortly.", 'bot-message');
+                    hideLoading();
+                })
+                .finally(() => {
+                    // Reset the processing flag
+                    handleServiceClick.isProcessing = false;
+                });
+        }
+
+        // Display sub-service options
+      function displaySubServiceOptions(options, containerClass) {
+          const chatBox = document.getElementById("chat-box");
+          const subServiceOptions = document.createElement("div");
+          subServiceOptions.className = `sub-service-buttons ${containerClass}`;
+          subServiceOptions.innerHTML = `
+              <p style="margin-bottom: 10px;">Please select one</p>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
+                  ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
+              </div>
+          `;
+          chatBox.appendChild(subServiceOptions);
+          chatBox.scrollTop = chatBox.scrollHeight;
       }
 
-      // Handle service click checks if the user selected one of the pre defined services
-      function handleServiceClick(serviceName, isBreadcrumbNavigation = false) {
-          // Prevent multiple rapid clicks
-          if (handleServiceClick.isProcessing) return;
-          handleServiceClick.isProcessing = true;
-
-          if (!isBreadcrumbNavigation) {
-              breadcrumbs.push(serviceName);
-              updateBreadcrumbs();
-          }
-
-          displayMessage(serviceName, 'user-message');
-          const greeting = document.getElementById("greeting");
-          if (greeting) greeting.remove();
-
-          showLoading();
-
-          fetch('/get_response', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: serviceName })
-          })
-              .then(response => {
-                  if (!response.ok) {
-                      throw new Error(`HTTP error! Status: ${response.status}`);
-                  }
-                  return response.json();
-              })
-              .then(data => {
-                  const responseMessage = data.response;
-
-                  if (!responseMessage) {
-                      throw new Error("Empty response from server.");
-                  }
-
-                  if (!handleIframeResponse(responseMessage)) {
-                      displayMessage(responseMessage, 'bot-message');
-                  }
-
-                  // Sub-service options logic
-                  if (serviceName === "Accounting Insights") {
-                      displaySubServiceOptions(['View Journal Entry', 'View Payment Entry', 'View Sales Invoice', 'View Purchase Invoice'], "accounting-subservices");
-                  } 
-                  else if (serviceName === "Purchasing Insights") {
-                      displaySubServiceOptions(['View Purchase Invoice'], "purchasing-subservices");
-                  } 
-                  else if (serviceName === "Selling Insights") {
-                      displaySubServiceOptions(['View Sales Invoice', 'View Quotation', 'View Delivery Note'], "selling-subservices");
-                  } 
-                  else if (serviceName === "Customer Insights") {
-                      displaySubServiceOptions(['View Lead', 'View Opportunity', 'View Customer List'], "crm-subservices");
-                  } 
-                  else if (serviceName === "Payroll Insights") {
-                      displaySubServiceOptions(['View Payroll Entry', 'View Salary Slip'], "payroll-subservices");
-                  } 
-                  else if (serviceName === "Stock Insights") {
-                      displaySubServiceOptions(['View Stock Entry', 'View Stock Reconciliation'], "stock-subservices");
-                  } 
-                  else if (serviceName === "Manufacturing Insights") {
-                      displaySubServiceOptions(['View BOM', 'View Work Order', 'View Job Card'], "manufacturing-subservices");
-                  } 
-                  else if (serviceName === "HR Insights") {
-                      displaySubServiceOptions(['View Employee Checkin', 'View Employee'], "HR-subservices");
-                  }
-                  else if (serviceName === "Projects Insights") {
-                      displaySubServiceOptions(['View Task', 'View Project', 'View Employee Checkin', 'View Timesheet'], "Projects-subservices");
-                  } 
-                  else if (serviceName === "System Reports") {
-                      if (userRole === "admin") {
-                          displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
-                      } 
-                      else if (userRole === "Finance Manager") {
-                          displaySubServiceOptions(['Purchasing & Selling Reports', 'Accounting Reports', 'HR & Payroll Reports', 'Stock Reports'], "system-reports-subservices");
-                      }
-                      else if (userRole === "Sales Manager") {
-                          displaySubServiceOptions(['Purchasing & Selling Reports'], "system-reports-subservices");
-                      }
-                      else if (userRole === "HR Manager") {
-                          displaySubServiceOptions(['HR & Payroll Reports'], "system-reports-subservices");
-                      }
-                      else if (userRole === "Operations Manager") {
-                          displaySubServiceOptions(['Purchasing & Selling Reports', 'Stock Reports'], "system-reports-subservices");
-                      }
-                  } 
-                  else if (serviceName === "Purchasing & Selling Reports") {
-                      displaySubServiceOptions(['Purchase Analytics', 'Purchase Invoice Trends', 'Sales Analytics', 'Sales Invoice Trends'], "purchasing-selling-reports");
-                  } 
-                  else if (serviceName === "Accounting Reports") {
-                      displaySubServiceOptions(['General Ledger', 'Balance Sheet', 'Profit and Loss Statement', 'Accounts Payable Summary', 'Accounts Receivable Summary', 'Gross Profit'], "accounting-reports");
-                  } 
-                  else if (serviceName === "HR & Payroll Reports") {
-                      displaySubServiceOptions(['Monthly Attendance Sheet', 'Shift Attendance', 'Employee Leave Balance Summary', 'Salary Register'], "hr-payroll-reports");
-                  } 
-                  else if (serviceName === "Stock Reports") {
-                      displaySubServiceOptions(['Total Stock Summary', 'Stock Ledger'], "stock-reports");
-                  } 
-                  else if (serviceName === "Add data") {
-                      displaySubServiceOptions(['Accounting module', 'Purchasing module', 'Selling module', 'CRM module', 'HR module', 'Payroll module', 'Stock module', 'Manufacturing module', 'Other modules']);
-                  } 
-                  else if (serviceName === "Accounting") {
-                      displaySubServiceOptions(["Accounting Insights", "Journal Entry", "Payment Entry", "Sales Invoice", "Purchase Invoice"]);
-                  } 
-                  else if (serviceName === "Purchasing") {
-                      displaySubServiceOptions(["Purchasing Insights", "Purchase Invoice", "Purchase Receipt" ]);
-                  } 
-                  else if (serviceName === "Selling") {
-                      displaySubServiceOptions(["Selling Insights", "Sales Invoice", "Sales Order",  "Quotation", "Supplier Quotation", "Request for Quotation"]);
-                  } 
-                  else if (serviceName === "Customers") {
-                      displaySubServiceOptions(["Customer Insights", "Lead", "Opportunity", "Customer"]);
-                  } 
-                  else if (serviceName === "HR") {
-                      displaySubServiceOptions(["HR Insights", "Leave Policy Assignment", "Leave Application", "Employee Attendance Tool", "Upload Attendance", "Employee"]);
-                  } 
-                  else if (serviceName === "Payroll") {
-                      displaySubServiceOptions(["Payroll Insights", "Payroll Entry", "Salary Slip" ]);
-                  } 
-                  else if (serviceName === "Stock") {
-                      displaySubServiceOptions(["Stock Insights", "Stock Entry", "Stock Reconciliation" ]);
-                  } 
-                  else if (serviceName === "Manufacturing") {
-                      displaySubServiceOptions(["Manufacturing Insights", "BOM", "Work Order", "Job Card"]);
-                  } 
-                  else if (serviceName === "Projects") {
-                      displaySubServiceOptions(["Projects Insights", "Task", "Project", "Employee Checkin", "Timesheet"]);
-                  } 
-                  else if (serviceName === "Dashboards") {
-                      if (userRole === "admin") {
-                          displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'CRM Dashboard', 'Human Resource Dashboard', 'Payroll Dashboard', 'Stock Dashboard', 'Manufacturing Dashboard', 'Project Dashboard']);
-                      } 
-                      else if (userRole === "Accounting") {
-                          displaySubServiceOptions(['Accounts Dashboard']);
-                      }
-                      else if (userRole === "Purchasing") {
-                          displaySubServiceOptions(['Buying Dashboard']);
-                      }
-                      else if (userRole === "Selling") {
-                          displaySubServiceOptions(['Selling Dashboard']);
-                      }
-                      else if (userRole === "CRM") {
-                          displaySubServiceOptions(['CRM Dashboard']);
-                      }
-                      else if (userRole === "Payroll") {
-                          displaySubServiceOptions(['Payroll Dashboard']);
-                      }
-                      else if (userRole === "Stock") {
-                          displaySubServiceOptions(['Stock Dashboard']);
-                      }
-                      else if (userRole === "Manufacturing") {
-                          displaySubServiceOptions(['Manufacturing Dashboard']);
-                      }
-                      else if (userRole === "HR") {
-                          displaySubServiceOptions(['Human Resource Dashboard']);
-                      }
-                      else if (userRole === "Projects") {
-                          displaySubServiceOptions(['Project Dashboard']);
-                      }
-                      else if (userRole === "Finance Manager") {
-                          displaySubServiceOptions(['Accounts Dashboard', 'Buying Dashboard', 'Selling Dashboard', 'Payroll Dashboard']);
-                      }
-                      else if (userRole === "Sales Manager") {
-                          displaySubServiceOptions(['Selling Dashboard', 'CRM Dashboard']);
-                      }
-                      else if (userRole === "Operations Manager") {
-                          displaySubServiceOptions(['Stock Dashboard', 'Manufacturing Dashboard']);
-                      }
-                      else if (userRole === "HR Manager") {
-                          displaySubServiceOptions(['Human Resource Dashboard', 'Payroll Dashboard', 'Project Dashboard']);
-                      }
-                      
-                  }
-                  else if (serviceName === "View data") {
-                      displaySubServiceOptions(['Accounting', "Purchasing", "Selling", "CRM", "Payroll", "Stock", "Manufacturing", "HR", "Projects","System Reports", "Dashboards"]);
-                  }
-
-                  hideLoading();
-              })
-              .catch(error => {
-                  console.error("Error in handleServiceClick:", error);
-                  displayMessage("I am working on some issues and will get back to you shortly.", 'bot-message');
-                  hideLoading();
-              })
-              .finally(() => {
-                  // Reset the processing flag
-                  handleServiceClick.isProcessing = false;
-              });
-      }
-
-      // Display sub-service options
-    function displaySubServiceOptions(options, containerClass) {
-        const chatBox = document.getElementById("chat-box");
-        const subServiceOptions = document.createElement("div");
-        subServiceOptions.className = `sub-service-buttons ${containerClass}`;
-        subServiceOptions.innerHTML = `
-            <p style="margin-bottom: 10px;">Please select one</p>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; width: 100%;">
-                ${options.map(option => `<button onclick="handleServiceClick('${option}')" style="padding: 10px 15px; font-size: 14px; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; background-color: #e1f5fe; transition: background-color 0.3s;">${option}</button>`).join('')}
-            </div>
-        `;
-        chatBox.appendChild(subServiceOptions);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function processBoldText(text) {
-    // Handle bold text with double asterisks, being more precise with the regex
-    return text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
-               .replace(/\n/g, '<br>');  // Handle any newlines within the text
+      function processBoldText(text) {
+      // Handle bold text with double asterisks, being more precise with the regex
+      return text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+                 .replace(/\n/g, '<br>');  // Handle any newlines within the text
     }
 
     // Process the message content
@@ -1705,276 +1594,18 @@
           }
       });
 
+      // function to close iframe 
+      function closeIframe() {
+            // Hide the iframe container
+            const iframeContainer = document.getElementById('iframe-container');
+            iframeContainer.style.display = 'none';
+            // Remove the class that adjusted the layout
+            document.getElementById('container').classList.remove('chat-with-iframe');
+        }
+
 
       // Add this at the start of your body tag to store session data
       const userRole = "{{ session['role'] }}";
-
-      const demoConversation = [
-          { role: "bot", message: "Hey Adam, how's it going? How can I help you today!" },
-          { role: "bot", waitForUser: true },
-          { 
-              role: "bot", 
-              message: "Retrieving inventory data from system...", 
-              loading: true,
-              details: {
-                  title: "Inventory Status",
-                  items: [
-                      "Summer Collection Stock: 157 units",
-                      "Minimum Stock Level: 200 units",
-                      "Current Demand Rate: 50 units/day",
-                      "Stock Coverage: 3.1 days",
-                      "Pending Orders: 85 units"
-                  ]
-              }
-          },
-          { role: "bot", message: "Yes, we're running low. The summer collection is selling fast!" },
-          { 
-              role: "bot", 
-              message: "Checking task management system...", 
-              loading: true,
-              details: {
-                  title: "Production Status",
-                  items: [
-                      "Material Procurement: Delayed by 5 days",
-                      "Production Line: 60% capacity",
-                      "Current Batch: 45% complete",
-                      "Material Status: Awaiting delivery",
-                      "Expected Completion: +7 days"
-                  ]
-              }
-          },
-          { role: "bot", message: "It looks like material procurement is delayed, and production is behind schedule." },
-          { 
-              role: "bot", 
-              message: "Accessing accounts payable...", 
-              loading: true,
-              details: {
-                  title: "Financial Overview",
-                  items: [
-                      "Outstanding Amount: EGP 20,000",
-                      "Due Date: Overdue by 15 days",
-                      "Supplier: TextilePro Inc.",
-                      "Payment Terms: Net 30",
-                      "Last Payment: EGP 15,000 (2/1/2025)"
-                  ]
-              }
-          },
-          { role: "bot", message: "There's $20K overdue to the supplier." },
-          { role: "bot", waitForUser: true },
-          { role: "bot", message: "That makes sense! No problem, I'll log it in and confirm." },
-          { role: "bot", message: "Logging Payment entry...",
-              loading: true,
-              details: {
-                  title: "Financial Overview",
-                  items: [
-                  "Logged Payment entry to TextilePro Inc. for EGP 20,000",
-                  ]
-              }},
-          { role: "bot", message: "Done! Payment entry recorded." },
-          { role: "bot", message: "Should I issue a material request for 1,000 items and inform our production manager?" },
-          { role: "bot", waitForUser: true },
-          { role: "bot", message: "Issuing Material Request...", loading: true, details: {
-              items: [
-              "MR-25-442 | 1,000 pcs",
-            "Style: SM25 Summer Collection",
-            "Production: Line #2",
-            "Start: 12/2/25",
-            "Notified: Ahmed (Production)"
-              ]
-          }},
-          { role: "bot", message: "Done! I've updated the status to 'Work in Progress.'" },
-          { role: "bot", waitForUser: true },
-          { role: "bot", message: "Checking financial data...",  loading: true,
-              details: {
-                  title: "Financial Overview",
-                  items: [
-            "Sales Report: SM25-Q1 | Period: 1/1-10/2",
-            "Total Units: 4,900 @ EGP 500/unit",
-            "Revenue Generated: EGP 2,450,000",
-            "Production Cost: EGP 2,205,000",
-            "Margin: EGP 245,000 (10% GP)"
-        ]
-    }},
-          { role: "bot", message: "It's currently at 10%. Just so you know, the industry standard is 30%. I believe the lower margin is due to the raw material price increase on December 20, which raised costs." },
-          { role: "bot", message: "Here's your analytics dashboard for more details." }
-      ];
-
-      let currentIndex = 0;
-      let isDemo = true;
-      let awaitingUserInput = false;
-      let awaitingSelection = false;
-
-      function continueDemoConversation() {
-          if (currentIndex >= demoConversation.length || awaitingSelection || awaitingUserInput) {
-              // When demo ends, show the dashboard
-              handleIframeResponse("iframe::https://startup.edenmea.com/app/dashboard-view/Management Dashboard");
-              return;
-          }
-          
-          const messageObj = demoConversation[currentIndex];
-          currentIndex++;
-          
-          if (messageObj.waitForUser) {
-              // Enable input for user response
-              awaitingUserInput = true;
-              document.getElementById("user-input").disabled = false;
-              document.getElementById("send-button").disabled = false;
-              return;
-          }
-          
-          if (messageObj.loading) {
-              // Display loading message
-              displayDemoMessage(messageObj);
-              // Wait for loading to complete, then show the next message
-              setTimeout(() => {
-                  if (currentIndex < demoConversation.length) {
-                      displayDemoMessage(demoConversation[currentIndex]);
-                      currentIndex++;
-                      setTimeout(continueDemoConversation, 1500);
-                  }
-              }, 1500);
-          } else {
-              displayDemoMessage(messageObj);
-              if (!messageObj.options) {
-                  setTimeout(continueDemoConversation, 1500);
-              }
-          }
-      }
-
-      // Update displayDemoMessage to handle loading states better
-      function displayDemoMessage(messageObj) {
-          const chatBox = document.getElementById("chat-box");
-          
-          if (messageObj.loading) {
-              const loadingDiv = document.createElement("div");
-              loadingDiv.className = "message bot-message loading-message";
-              loadingDiv.innerHTML = `
-                  <span class="system-status">${messageObj.message}</span>
-                  <div class="loading-dots">
-                      <div></div>
-                      <div></div>
-                      <div></div>
-                  </div>
-              `;
-              chatBox.appendChild(loadingDiv);
-              chatBox.scrollTop = chatBox.scrollHeight;
-
-              if (messageObj.details) {
-                  setTimeout(() => {
-                      loadingDiv.remove();
-                      const detailsDiv = document.createElement("div");
-                      detailsDiv.className = "message bot-message system-details";
-                      
-                      // Convert "Checking/Retrieving/Accessing" to "Checked/Retrieved/Accessed"
-                      const completedMessage = messageObj.message
-                          .replace('Checking', 'Checked')
-                          .replace('Retrieving', 'Retrieved')
-                          .replace('Accessing', 'Accessed')
-                          .replace('Issuing', 'Issued')
-                          .replace('Logging', 'Logged')
-                          .replace('...', '');
-                      
-                      detailsDiv.innerHTML = `
-                          <span class="system-status clickable">${completedMessage} (click for analysis)</span>
-                      `;
-                      
-                      // Create popup content
-                      const popup = document.createElement("div");
-                      popup.className = "details-popup";
-                      popup.style.display = 'none';
-                      popup.innerHTML = messageObj.details.items.map(item => 
-                          `<div class="detail-item">${item}</div>`
-                      ).join('');
-                      
-                      detailsDiv.appendChild(popup);
-
-                      // Add click handler
-                      detailsDiv.addEventListener('click', () => {
-                          popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
-                      });
-
-                      chatBox.appendChild(detailsDiv);
-                      chatBox.scrollTop = chatBox.scrollHeight;
-                  }, 1500);
-              }
-          } else {
-              const messageDiv = document.createElement("div");
-              messageDiv.className = `message ${messageObj.role === 'bot' ? 'bot-message' : 'user-message'}`;
-              messageDiv.textContent = messageObj.message;
-              chatBox.appendChild(messageDiv);
-              chatBox.scrollTop = chatBox.scrollHeight;
-          }
-      }
-
-      // Start demo when page loads
-      window.onload = function() {
-          if (isDemo) {
-              // Clear any existing content
-              const chatBox = document.getElementById("chat-box");
-              chatBox.innerHTML = '';
-              
-              // Start with input disabled
-              document.getElementById("user-input").disabled = true;
-              document.getElementById("send-button").disabled = true;
-              
-              // Start the conversation
-              continueDemoConversation();
-          }
-      }
-
-      // Add styles for the demo dropdown
-      const style = document.createElement('style');
-      style.textContent = `
-          .details-container {
-              display: inline-block;
-              position: relative;
-          }
-
-          .details-toggle {
-              padding: 0 4px;
-              background: #ffffff;
-              border: 1px solid #e5e7eb;
-              border-radius: 3px;
-              display: inline-flex;
-              align-items: center;
-              cursor: pointer;
-              transition: all 0.2s;
-              font-size: 10px;
-              color: #4797ed;
-              height: 16px;
-              box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-          }
-
-          .details-toggle:hover {
-              background: #f9fafb;
-          }
-
-          .details-arrow {
-              font-size: 8px;
-              opacity: 0.7;
-          }
-
-          .details-content {
-              position: absolute;
-              left: 0;
-              margin-top: 4px;
-              padding: 6px 10px;
-              background: white;
-              border: 1px solid #e5e7eb;
-              border-radius: 4px;
-              font-size: 11px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              width: 200px;
-              z-index: 1;
-          }
-
-          .detail-item {
-              color: #6b7280;
-              padding: 2px 0;
-              line-height: 1.3;
-          }
-      `;
-      document.head.appendChild(style);
     </script>
 </body>
 </html>
