@@ -957,40 +957,48 @@
       function handleIframeResponse(responseMessage) {
             if (!responseMessage.startsWith("iframe::")) return false;
 
-            const iframeUrl = responseMessage.split("iframe::")[1].trim();
-            
-            // Check if on mobile (screen width less than 768px)
-            if (window.innerWidth <= 768) {
-                // Open in new tab for mobile
-                window.open(iframeUrl, '_blank');
-                displayMessage("Opening in new tab...", 'bot-message');
+            try {
+                const iframeUrl = responseMessage.split("iframe::")[1].trim();
+                
+                // Check if on mobile
+                if (window.innerWidth <= 768) {
+                    window.open(iframeUrl, '_blank');
+                    displayMessage("Opening in new tab...", 'bot-message');
+                    return true;
+                }
+
+                const iframeContainer = document.getElementById('iframe-container');
+                const iframe = document.getElementById('report-iframe');
+
+                // Clear existing iframe content first
+                iframe.src = '';
+                
+                // Update iframe source
+                setTimeout(() => {
+                    iframe.src = iframeUrl;
+                }, 100);
+
+                // Show iframe container and adjust UI
+                iframeContainer.style.display = 'block';
+                document.getElementById('container').classList.add('chat-with-iframe');
+
+                // Handle iframe loading
+                iframe.onload = () => {
+                    displayMessage("Please find requested item in the next window", 'bot-message');
+                };
+
+                iframe.onerror = () => {
+                    console.error("Failed to load iframe");
+                    closeIframe();
+                    displayMessage("The report failed to load. Please try again.", 'bot-message error-message');
+                };
+
                 return true;
+            } catch (error) {
+                console.error("Error handling iframe:", error);
+                closeIframe();
+                return false;
             }
-
-            // Desktop behavior remains the same
-            const iframeContainer = document.getElementById('iframe-container');
-            const iframe = document.getElementById('report-iframe');
-
-            // Update iframe source
-            iframe.src = iframeUrl;
-
-            // Show iframe container and adjust UI
-            iframeContainer.style.display = 'block';
-            document.getElementById('container').classList.add('chat-with-iframe');
-
-            // Handle iframe loading errors
-            iframe.onload = () => {
-                displayMessage("Please find requested item in the next window", 'bot-message');
-            };
-
-            iframe.onerror = () => {
-                console.error("Failed to load iframe.");
-                displayMessage("The report failed to load. Please check the URL or try again.", 'bot-message');
-                iframeContainer.style.display = 'none';
-                document.getElementById('container').classList.remove('chat-with-iframe');
-            };
-
-            return true;
         }
       /*****************************************************************/
       function updateBreadcrumbs() {
@@ -1598,14 +1606,36 @@
       function closeIframe() {
             // Hide the iframe container
             const iframeContainer = document.getElementById('iframe-container');
+            const iframe = document.getElementById('report-iframe');
+            
+            // Clear the iframe source
+            iframe.src = '';
+            
+            // Hide container and remove class
             iframeContainer.style.display = 'none';
-            // Remove the class that adjusted the layout
             document.getElementById('container').classList.remove('chat-with-iframe');
+            
+            // Reset any other iframe-related states
+            document.getElementById('chat-container').style.width = '80%';
         }
 
 
       // Add this at the start of your body tag to store session data
       const userRole = "{{ session['role'] }}";
+
+      // Add event listener for iframe errors
+      window.addEventListener('load', () => {
+          const iframe = document.getElementById('report-iframe');
+          iframe.addEventListener('error', () => {
+              closeIframe();
+              displayMessage("The report failed to load. Please try again.", 'bot-message error-message');
+          });
+      });
+
+      // Add cleanup when navigating away or closing iframe
+      window.addEventListener('beforeunload', () => {
+          closeIframe();
+      });
     </script>
 </body>
 </html>
