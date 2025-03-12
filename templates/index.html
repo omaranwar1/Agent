@@ -1121,7 +1121,9 @@
             })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json().then(data => {
+                            throw new Error(`Server Error (${response.status}): ${data.message || 'Unknown error'}`);
+                        });
                     }
                     return response.json();
                 })
@@ -1276,7 +1278,15 @@
                 })
                 .catch(error => {
                     console.error("Error in handleServiceClick:", error);
-                    displayMessage(`An error occurred: ${error.message || error}`, 'bot-message error-message');
+                    let errorMessage = error.message;
+                    if (error.message.includes('500')) {
+                        errorMessage = "Server error: The service is temporarily unavailable. Please try again in a few moments.";
+                    } else if (error.message.includes('401')) {
+                        errorMessage = "Authentication error: Please log in again.";
+                    } else if (error.message.includes('403')) {
+                        errorMessage = "Access denied: You don't have permission to access this service.";
+                    }
+                    displayMessage(errorMessage, 'bot-message error-message');
                     hideLoading();
                 })
                 .finally(() => {
